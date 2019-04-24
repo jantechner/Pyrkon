@@ -3,44 +3,16 @@
 int rank;
 int size;
 
-pthread_t threadDelay;
-//GQueue *delayStack;
-pthread_mutex_t packetMut = PTHREAD_MUTEX_INITIALIZER;
+// pthread_t threadDelay;
+// GQueue *delayStack;
+// pthread_mutex_t packetMut = PTHREAD_MUTEX_INITIALIZER;
 
-void check_thread_support(int provided) {
-    printf("THREAD SUPPORT: %d\n", provided);
-    switch (provided)
-    {
-    case MPI_THREAD_SINGLE:
-        printf("Brak wsparcia dla wątków, kończę\n");
-        fprintf(stderr, "Brak wystarczającego wsparcia dla wątków - wychodzę!\n");
-        MPI_Finalize();
-        exit(-1);
-        break;
-    case MPI_THREAD_FUNNELED:
-        printf("tylko te wątki, ktore wykonaly mpi_init_thread mogą wykonać wołania do biblioteki mpi\n");
-        break;
-    case MPI_THREAD_SERIALIZED:
-        /* Potrzebne zamki wokół wywołań biblioteki MPI*/
-        printf("tylko jeden watek naraz może wykonać wołania do biblioteki MPI\n");
-        break;
-    case MPI_THREAD_MULTIPLE:
-        printf("Pełne wsparcie dla wątków\n");
-        break;
-    default:
-        printf("Nikt nic nie wie\n");
-    }
-}
-
-/* Nie ruszać, do użytku wewnętrznego przez wątek komunikacyjny */
-typedef struct {
+/*typedef struct {  // Nie ruszać, do użytku wewnętrznego przez wątek komunikacyjny 
     packet_t *newP;
     int type;
     int dst;
-} stackEl_t;
-
-/* Wątek wprowadzający sztuczne opóźnienia komunikacyjne */
-/*void *delayFunc(void *ptr) {
+} stackEl_t; */
+/*void *delayFunc(void *ptr) {   //Wątek wprowadzający sztuczne opóźnienia komunikacyjne
     while (!end) {
 	int percent = (rand()%2 + 1);
         struct timespec t = { 0, percent*5000 };
@@ -58,17 +30,41 @@ typedef struct {
         }
     }
     return 0;
+}*/
+
+void check_thread_support(int provided) {
+    printf("THREAD SUPPORT: %d\n", provided);
+    switch (provided)
+    {
+    case MPI_THREAD_SINGLE:
+        printf("Brak wsparcia dla wątków, kończę\n");
+        fprintf(stderr, "Brak wystarczającego wsparcia dla wątków - wychodzę!\n");
+        MPI_Finalize();
+        exit(-1);
+        break;
+    case MPI_THREAD_FUNNELED:
+        printf("Tylko te wątki, ktore wykonaly mpi_init_thread mogą wykonać wołania do biblioteki mpi\n");
+        break;
+    case MPI_THREAD_SERIALIZED:
+        /* Potrzebne zamki wokół wywołań biblioteki MPI*/
+        printf("Tylko jeden watek naraz może wykonać wołania do biblioteki MPI\n");
+        break;
+    case MPI_THREAD_MULTIPLE:
+        printf("Pełne wsparcie dla wątków\n");
+        break;
+    default:
+        printf("Nikt nic nie wie\n");
+    }
 }
-*/
 
-void inicjuj(int *argc, char ***argv)
-{
+void initializeMPI(int argc, char **argv) {
     int provided;
-    //delayStack = g_queue_new();
-    MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &provided);
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
     check_thread_support(provided);
+}
 
-    /* Stworzenie typu */
+void createMPIDatatypes() {
+    //MPI_PAKIET_T
     const int nitems = FIELDNO;                             // Struktura ma FIELDNO elementów - przy dodaniu pola zwiększ FIELDNO w main.h !
     int blocklengths[FIELDNO] = {1, 1, 1, 1};               /* tu zwiększyć na [4] = {1,1,1,1} gdy dodamy nowe pole */
     MPI_Aint offsets[FIELDNO];
@@ -79,28 +75,38 @@ void inicjuj(int *argc, char ***argv)
     MPI_Datatype typy[FIELDNO] = {MPI_INT, MPI_INT, MPI_INT, MPI_INT};     /* tu dodać typ nowego pola (np MPI_BYTE, MPI_INT) */
     MPI_Type_create_struct(nitems, blocklengths, offsets, typy, &MPI_PAKIET_T);
     MPI_Type_commit(&MPI_PAKIET_T);
+}
 
-
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+void setMPICommunicationVariables() {
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);  
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    srand(rank);
+}
 
-
+void runThreads() {
     pthread_create(&communicationThread, NULL, comFunc, 0);
+    if (rank == ROOT) pthread_create(&monitorThread, NULL, monitorFunc, 0);
+    //delayStack = g_queue_new();
     //pthread_create( &threadDelay, NULL, delayFunc, 0);
-    if (rank == ROOT)
-        pthread_create(&threadM, NULL, monitorFunc, 0);
+}
+
+void inicjuj(int argc, char **argv)
+{
+    println("Inicialize\n");
+    initializeMPI(argc, argv);
+    createMPIDatatypes();
+    setMPICommunicationVariables();
+    srand(rank); //for every process set unique rand seed
+    runThreads();
 }
 
 void finalizuj(void)
 {
     pthread_mutex_destroy(&konto_mut);
-    /* Czekamy, aż wątek potomny się zakończy */
-    //println("czekam na wątek \"komunikacyjny\"\n" );
+
     pthread_join(communicationThread, NULL);
-    //println("czekam na wątek \"opóźniający\"\n" );
+    if (rank==ROOT) pthread_join(monitorThread, NULL);
     //pthread_join(threadDelay,NULL);
-    //if (rank==0) pthread_join(threadM,NULL);
+
     MPI_Type_free(&MPI_PAKIET_T);
     MPI_Finalize();
     //g_queue_free(delayStack);
@@ -108,7 +114,6 @@ void finalizuj(void)
 
 void sendPacket(packet_t *data, int dst, int type)
 {
-
     MPI_Send(data, 1, MPI_PAKIET_T, dst, type, MPI_COMM_WORLD);
     /*
     packet_t *newP = (packet_t *)malloc(sizeof(packet_t));

@@ -1,21 +1,6 @@
 #ifndef MAINH
 #define MAINH
 
-/* boolean */
-#define TRUE 1
-#define FALSE 0
-
-#define ROOT 0
-
-#define FINISH 1
-#define APP_MSG 2
-#define GIVE_YOUR_STATE 3
-#define MY_STATE_IS 4
-/* MAX_HANDLERS musi się równać wartości ostatniego typu pakietu + 1 */
-#define MAX_HANDLERS 5 
-
-#define STARTING_MONEY 1000
-
 #include <mpi.h>
 #include <stdlib.h>
 #include <stdio.h> 
@@ -24,33 +9,42 @@
 #include <unistd.h>
 #include <string.h>
 
-/* FIELDNO: liczba pól w strukturze packet_t */
-#define FIELDNO 4
+#define TRUE 1
+#define FALSE 0
+#define ROOT 0
+#define STARTING_MONEY 1000
+
+typedef void (*f_w)(packet_t *); //typ wskaźnik na funkcję zwracającej void i z argumentem packet_t*
 typedef struct {
     int ts; /* zegar lamporta */
     int kasa; 
     int dst; /* pole ustawiane w sendPacket */
     int src; /* pole ustawiane w wątku komunikacyjnym na rank nadawcy */
-    /* przy dodaniu nowych pól zwiększy FIELDNO i zmodyfikuj 
-       plik init.c od linijki 76
-    */
+    /* przy dodaniu nowych pól zwiększy FIELDNO i zmodyfikuj plik init.c od linijki 76*/
 } packet_t;
+#define FIELDNO 4   //liczba pól w strukturze packet_t
 
-extern int rank,size;
+//Messages types 
+#define FINISH 1
+#define APP_MSG 2
+#define GIVE_YOUR_STATE 3
+#define MY_STATE_IS 4
+#define MAX_HANDLERS 5 //MAX_HANDLERS musi się równać wartości ostatniego typu pakietu + 1
+
+//Messages structs
+MPI_Datatype MPI_PAKIET_T;
+
+extern f_w handlers[MAX_HANDLERS];
+extern int rank, size;
+extern int sum;
 extern volatile char end;
-extern MPI_Datatype MPI_PAKIET_T;
-extern pthread_t communicationThread, threadM, threadDelay;
-
-/* do użytku wewnętrznego (implementacja opóźnień komunikacyjnych) */
-//extern GQueue *delayStack;
-/* synchro do zmiennej konto */
+extern pthread_t communicationThread, monitorThread, threadDelay;
 extern pthread_mutex_t konto_mut;
+extern sem_t all_sem;
+// extern GQueue *delayStack; //do użytku wewnętrznego (implementacja opóźnień komunikacyjnych)
 
-/* argument musi być, bo wymaga tego pthreads. Wątek monitora, który po jakimś czasie ma wykryć stan */
-extern void *monitorFunc(void *);
-/* argument musi być, bo wymaga tego pthreads. Wątek komunikacyjny */
-extern void *comFunc(void *);
-
+extern void *monitorFunc();                     //wątek monitora, który po jakimś czasie ma wykryć stan
+extern void *comFunc();                         //wątek komunikacyjny
 extern void sendPacket(packet_t *, int, int);
 
 #define PROB_OF_SENDING 35

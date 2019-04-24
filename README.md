@@ -1,9 +1,12 @@
-Gdyby po uruchomieniu zmieniły się kolorki terminala, wpisujemy polecenie
-"reset" do przywrócenia standardowych ustawień terminala.
-
 Kompilacja:
 
-1. make clear; make (make clear usuwa poprzednie pliki wykonywalne i obiektowe)
+- `make` - kopilacja i utworzenie pliku wykonywalnego
+- `make run` - uruchomienie programu 
+- `make clear` - usunięcie poprzednich plików wykonywalnych 
+- `make reset` - usunięcie poprzednich plików wykonywalnych i ponowna kompilacja (połączenie make clear i make)
+
+
+`reset` - zresetowanie kolorów terminala i przywrócenie standardowych ustawień
 
 Wprowadzanie zegarów Lamporta:
 
