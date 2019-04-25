@@ -7,12 +7,13 @@ int size;
 // GQueue *delayStack;
 // pthread_mutex_t packetMut = PTHREAD_MUTEX_INITIALIZER;
 
-/*typedef struct {  // Nie ruszać, do użytku wewnętrznego przez wątek komunikacyjny 
+/* typedef struct {  // Nie ruszać, do użytku wewnętrznego przez wątek komunikacyjny 
     packet_t *newP;
     int type;
     int dst;
 } stackEl_t; */
-/*void *delayFunc(void *ptr) {   //Wątek wprowadzający sztuczne opóźnienia komunikacyjne
+
+/* void *delayFunc(void *ptr) {   //Wątek wprowadzający sztuczne opóźnienia komunikacyjne
     while (!end) {
 	int percent = (rand()%2 + 1);
         struct timespec t = { 0, percent*5000 };
@@ -30,7 +31,7 @@ int size;
         }
     }
     return 0;
-}*/
+} */
 
 void check_thread_support(int provided) {
     printf("THREAD SUPPORT: %d\n", provided);
@@ -60,7 +61,7 @@ void check_thread_support(int provided) {
 void initializeMPI(int argc, char **argv) {
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-    check_thread_support(provided);
+    // check_thread_support(provided);
 }
 
 void createMPIDatatypes() {
@@ -89,9 +90,8 @@ void runThreads() {
     //pthread_create( &threadDelay, NULL, delayFunc, 0);
 }
 
-void inicjuj(int argc, char **argv)
-{
-    println("Inicialize\n");
+void inicjuj(int argc, char **argv) {
+    println("Process initialized\n");
     initializeMPI(argc, argv);
     createMPIDatatypes();
     setMPICommunicationVariables();
@@ -99,9 +99,9 @@ void inicjuj(int argc, char **argv)
     runThreads();
 }
 
-void finalizuj(void)
-{
+void finalizuj(void) {
     pthread_mutex_destroy(&konto_mut);
+    pthread_mutex_destroy(&timerMutex);
 
     pthread_join(communicationThread, NULL);
     if (rank==ROOT) pthread_join(monitorThread, NULL);
@@ -110,20 +110,4 @@ void finalizuj(void)
     MPI_Type_free(&MPI_PAKIET_T);
     MPI_Finalize();
     //g_queue_free(delayStack);
-}
-
-void sendPacket(packet_t *data, int dst, int type)
-{
-    MPI_Send(data, 1, MPI_PAKIET_T, dst, type, MPI_COMM_WORLD);
-    /*
-    packet_t *newP = (packet_t *)malloc(sizeof(packet_t));
-    stackEl_t *stackEl = (stackEl_t *)malloc(sizeof(stackEl_t));
-    memcpy(newP,data, sizeof(packet_t));
-    stackEl->dst = dst;
-    stackEl->type = type;
-    stackEl->newP = newP;
-    pthread_mutex_lock( &packetMut );
-    g_queue_push_head( delayStack, stackEl );
-    pthread_mutex_unlock( &packetMut );
-    */
 }

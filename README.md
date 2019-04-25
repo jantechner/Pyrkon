@@ -8,17 +8,6 @@ Kompilacja:
 
 `reset` - zresetowanie kolorów terminala i przywrócenie standardowych ustawień
 
-Wprowadzanie zegarów Lamporta:
-
-1. Dodać zmienną globalną reprezentującą zegar skalarny Lamporta
-
-2. Zmodyfikować makra println (w main.h), by wyświetlały zegar Lamporta 
-
-3. Zwiększanie zegara przy sendPacket (w init.c) oraz max(bieżący, pakiet)+1 przy odbieraniu (w wątku komunikacyjnym comFunc w main.c)
-
-4. MPI_Send oraz MPI_Recv są wywoływane przez różne wątki, więc dostępy do zmiennej
-    reprezentującej zegar lamporta należy chronić muteksem (np. nowym albo już istniejącym)
-
 Modyfikowanie typu pakietu:
 
 1. w main.h szukamy struct packet_t i dodajemy pole np. int nowe_pole; zwiększamy FIELDNO
