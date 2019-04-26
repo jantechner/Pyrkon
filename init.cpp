@@ -2,7 +2,7 @@
 
 int rank;
 int size;
-
+MPI_Datatype MPI_PAKIET_T;
 // pthread_t threadDelay;
 // GQueue *delayStack;
 // pthread_mutex_t packetMut = PTHREAD_MUTEX_INITIALIZER;
@@ -103,6 +103,7 @@ void inicjuj(int argc, char **argv) {
     createMPIDatatypes();
     setMPICommunicationVariables();
     initializeLamportTimer();
+    initializeHandlers();
     srand(rank); //for every process set unique rand seed
     runThreads();
 }

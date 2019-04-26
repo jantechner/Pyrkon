@@ -1,22 +1,23 @@
 #gmodule = -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/ -I/usr/include/glib-2.0/
 gmodule = 
+mpiCompiler = mpic++
 
 all: compile
 
 compile: outputFolder main.o init.o threads.o handlers.o
-	mpicc -o pyrkon output/main.o output/init.o output/threads.o output/handlers.o
+	$(mpiCompiler) -o pyrkon output/main.o output/init.o output/threads.o output/handlers.o
 
-handlers.o: handlers.c
-	mpicc -c -Wall $(gmodule) -o output/handlers.o handlers.c
+handlers.o: handlers.cpp
+	$(mpiCompiler) -c -Wall $(gmodule) -o output/handlers.o handlers.cpp
 
-threads.o: threads.c
-	mpicc -c -Wall $(gmodule) -o output/threads.o threads.c
+threads.o: threads.cpp
+	$(mpiCompiler) -c -Wall $(gmodule) -o output/threads.o threads.cpp
 
-init.o: init.c 
-	mpicc -c -Wall $(gmodule) -o output/init.o init.c
+init.o: init.cpp 
+	$(mpiCompiler) -c -Wall $(gmodule) -o output/init.o init.cpp
 
-main.o: main.c main.h
-	mpicc -c -Wall $(gmodule) -o output/main.o main.c 
+main.o: main.cpp main.h
+	$(mpiCompiler) -c -Wall $(gmodule) -o output/main.o main.cpp 
 
 outputFolder:
 	mkdir output

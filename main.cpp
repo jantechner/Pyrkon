@@ -7,6 +7,7 @@ pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t timerMutex = PTHREAD_MUTEX_INITIALIZER;
 sem_t all_sem;
 
+int pyrkonHost;
 int lamportTimer;
 int permissionsReceived = 0;
 volatile bool end = false;
@@ -18,8 +19,10 @@ extern void finalizuj(void);
 void notifyAll(int);
 void notifyOthers(int);
 void choosePyrkonHost();
+// void determineWorkshopsDetails(void);
 
 int main(int argc, char **argv) {
+    printf("%d\n", argc);
     inicjuj(argc, argv);
     mainLoop();
     finalizuj();
@@ -31,6 +34,8 @@ void mainLoop(void) {
     choosePyrkonHost();
 
     if (rank == pyrkonHost) notifyAll(PYRKON_START);
+
+    // if (rank == pyrkonHost) determineWorkshopsDetails();
 
     // wait a while
     int percent = rand() % 2 + 1;
@@ -47,8 +52,11 @@ void choosePyrkonHost() {
 
     notifyOthers(WANT_START_PYRKON);
 
+    
     sem_init(&all_sem, 0, 0);
+    printf("TEST\n");
     sem_wait(&all_sem);
+    printf("TEST2");
 
     // while(!pyrkonInProgress) {  //TODO może lepsze zastosowanie semafora -> pasywne czekanie 
     //     if (permissionsReceived == size - 1) {

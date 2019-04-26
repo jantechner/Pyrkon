@@ -31,17 +31,16 @@ typedef void (*f_w)(packet_t *); //typ wskaźnik na funkcję zwracającej void i
 #define WANT_START_PYRKON_ACK 3
 #define PYRKON_START 4
 #define MAX_HANDLERS 5 //MAX_HANDLERS musi się równać wartości ostatniego typu pakietu + 1
+extern void initializeHandlers();
 
 //Messages structs
-MPI_Datatype MPI_PAKIET_T;
-
-extern f_w handlers[MAX_HANDLERS];
+extern MPI_Datatype MPI_PAKIET_T;
 extern int rank, size, sum;
 extern int lamportTimer;
 
 extern volatile bool end;
 extern volatile bool pyrkonInProgress;
-int pyrkonHost;
+extern int pyrkonHost;
 
 extern pthread_t communicationThread, monitorThread, threadDelay;
 extern pthread_mutex_t konto_mut, timerMutex;
@@ -49,7 +48,7 @@ extern sem_t all_sem;
 // extern GQueue *delayStack; //do użytku wewnętrznego (implementacja opóźnień komunikacyjnych)
 
 extern void *monitorFunc();                     //wątek monitora, który po jakimś czasie ma wykryć stan
-extern void *comFunc();                         //wątek komunikacyjny
+extern void *comFunc(void *);                         //wątek komunikacyjny
 extern void sendPacket(packet_t *, int, int);
 
 #define max(a,b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a > _b ? _a : _b; })

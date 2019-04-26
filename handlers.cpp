@@ -5,16 +5,12 @@
 extern int permissionsReceived;
 extern int timerBeforeReceiving;
 
-void finishHandler(packet_t *);
-void startPyrkonRequestHandler(packet_t *);
-void startPyrkonPermissionHandler(packet_t *);
-void startPyrkonHandler(packet_t *);
+// void finishHandler(packet_t *);
+// void startPyrkonRequestHandler(packet_t *);
+// void startPyrkonPermissionHandler(packet_t *);
+// void startPyrkonHandler(packet_t *);
 
-
-f_w handlers[MAX_HANDLERS] = {[FINISH] = finishHandler,
-                              [WANT_START_PYRKON] = startPyrkonRequestHandler,
-                              [WANT_START_PYRKON_ACK] = startPyrkonPermissionHandler,
-                              [PYRKON_START] = startPyrkonHandler};
+f_w handlers[MAX_HANDLERS];
 
 
 void finishHandler(packet_t *pakiet) {
@@ -50,6 +46,14 @@ void startPyrkonHandler(packet_t *pakiet) {
     sem_post(&all_sem);
     println("Pyrkon host: %d", pyrkonHost);
 }
+
+void initializeHandlers() {
+    handlers[FINISH] = finishHandler;
+    handlers[WANT_START_PYRKON] = startPyrkonRequestHandler;
+    handlers[WANT_START_PYRKON_ACK] = startPyrkonPermissionHandler;
+    handlers[PYRKON_START] = startPyrkonHandler;
+}
+
 
 /* void myStateHandler(packet_t *pakiet) {
     static int statePacketsCnt = 0;  //zmienna statyczna, istnieje przez cały czas działania programu
