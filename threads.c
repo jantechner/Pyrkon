@@ -1,6 +1,8 @@
 #include "main.h"
 
-void *monitorFunc(void *ptr) {
+int timerBeforeReceiving;
+
+/* void *monitorFunc(void *ptr) {
     packet_t data;
 
     for (int i = 5; i > 0; i--) {
@@ -25,20 +27,27 @@ void *monitorFunc(void *ptr) {
     // printf("\n\tW systemie jest: [%d]\n\n", sum);
     // P_CLR
     return 0;
-}
+} */
 
 /* Wątek komunikacyjny - dla każdej otrzymanej wiadomości wywołuje jej handler */
 void *comFunc(void *ptr) {
-    println("Wejście do wątku komunikacyjnego\n");
+    // println("Wejście do wątku komunikacyjnego\n");
     MPI_Status status;
     packet_t pakiet;
 
     while (!end) {
         MPI_Recv(&pakiet, 1, MPI_PAKIET_T, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-
-        pthread_mutex_lock(&timerMutex);
-        lamportTimer = max(lamportTimer, pakiet.ts) + 1;
-        pthread_mutex_unlock(&timerMutex);
+        
+        if (status.MPI_TAG != WANT_START_PYRKON && status.MPI_TAG != WANT_START_PYRKON_ACK) {
+            pthread_mutex_lock(&timerMutex);
+            timerBeforeReceiving = lamportTimer;
+            lamportTimer = max(lamportTimer, pakiet.ts) + 1;
+            pthread_mutex_unlock(&timerMutex);
+        } else {
+            pthread_mutex_lock(&timerMutex);
+            timerBeforeReceiving = lamportTimer;
+            pthread_mutex_unlock(&timerMutex);
+        }
 
         pakiet.src = status.MPI_SOURCE;
         handlers[(int)status.MPI_TAG](&pakiet);

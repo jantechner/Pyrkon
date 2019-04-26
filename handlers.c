@@ -2,31 +2,19 @@
 
 // Przypisanie typu wiadomości do handlera na końcu pliku!!!
 
-extern int konto;
+extern int permissionsReceived;
+extern int timerBeforeReceiving;
 
-// void myStateHandler(packet_t *pakiet) {
-//     static int statePacketsCnt = 0;  //zmienna statyczna, istnieje przez cały czas działania programu
-
-//     statePacketsCnt++;
-//     sum += pakiet->kasa;
-//     println("Suma otrzymana: %d, total: %d\n", pakiet->kasa, sum);
-//     //println( "%d statePackets from %d\n", statePacketsCnt, pakiet->src);
-//     if (statePacketsCnt == size)
-//     {
-//         sem_post(&all_sem);
-//     }
-// }
+void finishHandler(packet_t *);
+void startPyrkonRequestHandler(packet_t *);
+void startPyrkonPermissionHandler(packet_t *);
+void startPyrkonHandler(packet_t *);
 
 
-// void giveHandler(packet_t *pakiet) {
-//     /* monitor prosi, by mu podać stan kasy */
-//     /* tutaj odpowiadamy monitorowi, ile mamy kasy. Pamiętać o muteksach! */
-//     println("dostałem GIVE STATE\n");
-
-//     packet_t tmp;
-//     tmp.kasa = konto;
-//     sendPacket(&tmp, ROOT, MY_STATE_IS);
-// }
+f_w handlers[MAX_HANDLERS] = {[FINISH] = finishHandler,
+                              [WANT_START_PYRKON] = startPyrkonRequestHandler,
+                              [WANT_START_PYRKON_ACK] = startPyrkonPermissionHandler,
+                              [PYRKON_START] = startPyrkonHandler};
 
 
 void finishHandler(packet_t *pakiet) {
@@ -34,18 +22,44 @@ void finishHandler(packet_t *pakiet) {
     end = true;
 }
 
-
-
-void appMsgHandler(packet_t *pakiet) {
-    /* ktoś przysłał mi przelew */
-    println("\tdostałem %d od %d\n", pakiet->kasa, pakiet->src);
-    pthread_mutex_lock(&konto_mut);
-    konto += pakiet->kasa;
-    println("Stan obecny: %d\n", konto);
-    pthread_mutex_unlock(&konto_mut);
+void startPyrkonRequestHandler(packet_t *pakiet) {
+    int requestFrom = pakiet->src;
+    println("       Request od procesu %d || Timery: %d %d", requestFrom, timerBeforeReceiving, pakiet->ts);
+    if (pyrkonHost != rank) {
+        if (timerBeforeReceiving > pakiet->ts || (timerBeforeReceiving == pakiet->ts && rank < requestFrom)) {
+            pakiet->src = rank;
+            sendPacket(pakiet, requestFrom, WANT_START_PYRKON_ACK);
+            println("Permission %d -> %d", rank, requestFrom);
+        }
+    }
 }
 
-f_w handlers[MAX_HANDLERS] = {/*[GIVE_YOUR_STATE] = giveHandler,*/
-                              [FINISH] = finishHandler,
-                              /*[MY_STATE_IS] = myStateHandler,*/
-                              [APP_MSG] = appMsgHandler};
+void startPyrkonPermissionHandler(packet_t *pakiet) {
+    permissionsReceived++;
+    println("               PERMISSION od %d || Otrzymano już %d", pakiet->src, permissionsReceived);
+    if (permissionsReceived == size - 1) {
+        pyrkonHost = rank;
+        sem_post(&all_sem);
+    }
+}
+
+void startPyrkonHandler(packet_t *pakiet) {
+    // println("START from %d\n", pakiet->src);
+    // pyrkonInProgress = true;
+    pyrkonHost = pakiet->src;
+    sem_post(&all_sem);
+    println("Pyrkon host: %d", pyrkonHost);
+}
+
+/* void myStateHandler(packet_t *pakiet) {
+    static int statePacketsCnt = 0;  //zmienna statyczna, istnieje przez cały czas działania programu
+
+    statePacketsCnt++;
+    sum += pakiet->kasa;
+    println("Suma otrzymana: %d, total: %d\n", pakiet->kasa, sum);
+    //println( "%d statePackets from %d\n", statePacketsCnt, pakiet->src);
+    if (statePacketsCnt == size)
+    {
+        sem_post(&all_sem);
+    }
+} */

@@ -83,9 +83,16 @@ void setMPICommunicationVariables() {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 }
 
+void initializeLamportTimer() {
+    lamportTimer = 0;               //wszyscy startują z zerowym zegarem 
+    // pthread_mutex_lock(&timerMutex);
+    // lamportTimer = rank;
+    // pthread_mutex_unlock(&timerMutex);
+}
+
 void runThreads() {
     pthread_create(&communicationThread, NULL, comFunc, 0);
-    if (rank == ROOT) pthread_create(&monitorThread, NULL, monitorFunc, 0);
+    // if (rank == ROOT) pthread_create(&monitorThread, NULL, monitorFunc, 0);
     //delayStack = g_queue_new();
     //pthread_create( &threadDelay, NULL, delayFunc, 0);
 }
@@ -95,6 +102,7 @@ void inicjuj(int argc, char **argv) {
     initializeMPI(argc, argv);
     createMPIDatatypes();
     setMPICommunicationVariables();
+    initializeLamportTimer();
     srand(rank); //for every process set unique rand seed
     runThreads();
 }
@@ -104,7 +112,7 @@ void finalizuj(void) {
     pthread_mutex_destroy(&timerMutex);
 
     pthread_join(communicationThread, NULL);
-    if (rank==ROOT) pthread_join(monitorThread, NULL);
+    // if (rank==ROOT) pthread_join(monitorThread, NULL);
     //pthread_join(threadDelay,NULL);
 
     MPI_Type_free(&MPI_PAKIET_T);

@@ -27,11 +27,10 @@ typedef void (*f_w)(packet_t *); //typ wskaźnik na funkcję zwracającej void i
 
 //Messages types 
 #define FINISH 1
-#define APP_MSG 2
-#define GIVE_YOUR_STATE 3
-#define MY_STATE_IS 4
-#define WANT_START_PYRKON 5
-#define MAX_HANDLERS 6 //MAX_HANDLERS musi się równać wartości ostatniego typu pakietu + 1
+#define WANT_START_PYRKON 2
+#define WANT_START_PYRKON_ACK 3
+#define PYRKON_START 4
+#define MAX_HANDLERS 5 //MAX_HANDLERS musi się równać wartości ostatniego typu pakietu + 1
 
 //Messages structs
 MPI_Datatype MPI_PAKIET_T;
@@ -42,6 +41,7 @@ extern int lamportTimer;
 
 extern volatile bool end;
 extern volatile bool pyrkonInProgress;
+int pyrkonHost;
 
 extern pthread_t communicationThread, monitorThread, threadDelay;
 extern pthread_mutex_t konto_mut, timerMutex;
