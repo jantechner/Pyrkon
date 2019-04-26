@@ -1,8 +1,17 @@
 #include "main.h"
 
-int rank;
-int size;
+int rank, size, lamportTimer, pyrkonHost;
+volatile bool end = false;
+
+pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER, timerMutex = PTHREAD_MUTEX_INITIALIZER;
+sem_t pyrkonStartSem;
+pthread_t communicationThread;
+
+extern void initializeHandlers();
+extern void *comFunc(void *);
+
 MPI_Datatype MPI_PAKIET_T;
+
 // pthread_t threadDelay;
 // GQueue *delayStack;
 // pthread_mutex_t packetMut = PTHREAD_MUTEX_INITIALIZER;
@@ -58,13 +67,15 @@ void check_thread_support(int provided) {
     }
 }
 
-void initializeMPI(int argc, char **argv) {
+void initializeMPI(int argc, char *argv[]) {
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
     // check_thread_support(provided);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);  
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 }
 
-void createMPIDatatypes() {
+void createMPIDataTypes() {
     //MPI_PAKIET_T
     const int nitems = FIELDNO;                             // Struktura ma FIELDNO elementów - przy dodaniu pola zwiększ FIELDNO w main.h !
     int blocklengths[FIELDNO] = {1, 1, 1, 1};               /* tu zwiększyć na [4] = {1,1,1,1} gdy dodamy nowe pole */
@@ -78,11 +89,6 @@ void createMPIDatatypes() {
     MPI_Type_commit(&MPI_PAKIET_T);
 }
 
-void setMPICommunicationVariables() {
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);  
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-}
-
 void initializeLamportTimer() {
     lamportTimer = 0;               //wszyscy startują z zerowym zegarem 
     // pthread_mutex_lock(&timerMutex);
@@ -92,28 +98,24 @@ void initializeLamportTimer() {
 
 void runThreads() {
     pthread_create(&communicationThread, NULL, comFunc, 0);
-    // if (rank == ROOT) pthread_create(&monitorThread, NULL, monitorFunc, 0);
     //delayStack = g_queue_new();
     //pthread_create( &threadDelay, NULL, delayFunc, 0);
 }
 
-void inicjuj(int argc, char **argv) {
-    println("Process initialized\n");
+void initialize(int argc, char *argv[]) {
+    // println("Process initialized\n");
     initializeMPI(argc, argv);
-    createMPIDatatypes();
-    setMPICommunicationVariables();
+    createMPIDataTypes();
     initializeLamportTimer();
     initializeHandlers();
     srand(rank); //for every process set unique rand seed
     runThreads();
 }
 
-void finalizuj(void) {
-    pthread_mutex_destroy(&konto_mut);
+void finalize(void) {
     pthread_mutex_destroy(&timerMutex);
-
     pthread_join(communicationThread, NULL);
-    // if (rank==ROOT) pthread_join(monitorThread, NULL);
+    sem_destroy(&pyrkonStartSem);
     //pthread_join(threadDelay,NULL);
 
     MPI_Type_free(&MPI_PAKIET_T);

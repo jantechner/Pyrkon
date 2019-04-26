@@ -1,40 +1,25 @@
 #include "main.h"
 
-pthread_t communicationThread, monitorThread;
+int permissionsReceived;
 
-/* mutexes synchronizing shared variables */
-pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t timerMutex = PTHREAD_MUTEX_INITIALIZER;
-sem_t all_sem;
-
-int pyrkonHost;
-int lamportTimer;
-int permissionsReceived = 0;
-volatile bool end = false;
-volatile bool pyrkonInProgress = false;
-
-extern void inicjuj(int argc, char **argv);
-void mainLoop(void);
-extern void finalizuj(void);
+extern void initialize(int argc, char **argv);
+extern void finalize();
+void mainLoop();
 void notifyAll(int);
 void notifyOthers(int);
 void choosePyrkonHost();
-// void determineWorkshopsDetails(void);
+// void determineWorkshopsDetails();
 
-int main(int argc, char **argv) {
-    printf("%d\n", argc);
-    inicjuj(argc, argv);
+int main(int argc, char *argv[]) {
+    initialize(argc, argv);
     mainLoop();
-    finalizuj();
+    finalize();
     return 0;
 }
 
 void mainLoop(void) {
-
     choosePyrkonHost();
-
     if (rank == pyrkonHost) notifyAll(PYRKON_START);
-
     // if (rank == pyrkonHost) determineWorkshopsDetails();
 
     // wait a while
@@ -52,18 +37,8 @@ void choosePyrkonHost() {
 
     notifyOthers(WANT_START_PYRKON);
 
-    
-    sem_init(&all_sem, 0, 0);
-    printf("TEST\n");
-    sem_wait(&all_sem);
-    printf("TEST2");
-
-    // while(!pyrkonInProgress) {  //TODO może lepsze zastosowanie semafora -> pasywne czekanie 
-    //     if (permissionsReceived == size - 1) {
-    //         pyrkonHost = rank;
-    //         break;
-    //     }
-    // }
+    sem_init(&pyrkonStartSem, 0, 0);
+    sem_wait(&pyrkonStartSem);
 }
 
 void notifyAll(int message) {

@@ -1,37 +1,11 @@
 #include "main.h"
 
-int timerBeforeReceiving;
-extern f_w handlers[MAX_HANDLERS];
-/* void *monitorFunc(void *ptr) {
-    packet_t data;
-
-    for (int i = 5; i > 0; i--) {
-        println("Start monitora za %d s\n", i);
-        sleep(1);
-    }
-
-    // // TUTAJ WYKRYWANIE STANu
-    // sem_init(&all_sem, 0, 0);
-    // println("MONITOR START \n");
-    // for (int i = 0; i < size; i++) {
-    //     sendPacket(&data, i, GIVE_YOUR_STATE);
-    // }
-    // sem_wait(&all_sem);
-
-    for (int i = 1; i < size; i++) {
-        sendPacket(&data, i, FINISH);
-    }
-    sendPacket(&data, 0, FINISH);
-
-    // P_RED;
-    // printf("\n\tW systemie jest: [%d]\n\n", sum);
-    // P_CLR
-    return 0;
-} */
+int requestTimestamp;
+extern functionPointer handlers[];
 
 /* Wątek komunikacyjny - dla każdej otrzymanej wiadomości wywołuje jej handler */
 void *comFunc(void *ptr) {
-    println("Wejście do wątku komunikacyjnego\n");
+    // println("Wejście do wątku komunikacyjnego\n");
     MPI_Status status;
     packet_t pakiet;
 
@@ -39,24 +13,19 @@ void *comFunc(void *ptr) {
         
         MPI_Recv(&pakiet, 1, MPI_PAKIET_T, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         
-        
         if (status.MPI_TAG != WANT_START_PYRKON && status.MPI_TAG != WANT_START_PYRKON_ACK) {
             pthread_mutex_lock(&timerMutex);
-            timerBeforeReceiving = lamportTimer;
+            requestTimestamp = lamportTimer;
             lamportTimer = max(lamportTimer, pakiet.ts) + 1;
             pthread_mutex_unlock(&timerMutex);
         } else {
             pthread_mutex_lock(&timerMutex);
-            timerBeforeReceiving = lamportTimer;
+            requestTimestamp = lamportTimer;
             pthread_mutex_unlock(&timerMutex);
         }
-        
 
         pakiet.src = status.MPI_SOURCE;
-        println("Odebrano wiadomość %d\n", status.MPI_TAG);
         handlers[(int)status.MPI_TAG](&pakiet);
-        
     }
-    println("Koniec!");
     return 0;
 }

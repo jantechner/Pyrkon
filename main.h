@@ -2,17 +2,16 @@
 #define MAINH
 
 #include <mpi.h>
-#include <stdlib.h>
-#include <stdio.h> 
+#include <cstdlib>
+#include <cstdio> 
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdbool.h>
-#include <math.h>
+#include <algorithm>
+
+using namespace std;
 
 #define ROOT 0
-#define STARTING_MONEY 1000
 
 typedef struct {
     int ts; /* zegar lamporta */
@@ -23,7 +22,7 @@ typedef struct {
 } packet_t;
 #define FIELDNO 4   //liczba pól w strukturze packet_t
 
-typedef void (*f_w)(packet_t *); //typ wskaźnik na funkcję zwracającej void i z argumentem packet_t*
+typedef void (*functionPointer)(packet_t *); //typ wskaźnik na funkcję zwracającej void i z argumentem packet_t*
 
 //Messages types 
 #define FINISH 1
@@ -31,35 +30,22 @@ typedef void (*f_w)(packet_t *); //typ wskaźnik na funkcję zwracającej void i
 #define WANT_START_PYRKON_ACK 3
 #define PYRKON_START 4
 #define MAX_HANDLERS 5 //MAX_HANDLERS musi się równać wartości ostatniego typu pakietu + 1
-extern void initializeHandlers();
 
 //Messages structs
 extern MPI_Datatype MPI_PAKIET_T;
-extern int rank, size, sum;
+extern int rank, size;
 extern int lamportTimer;
 
 extern volatile bool end;
-extern volatile bool pyrkonInProgress;
 extern int pyrkonHost;
 
-extern pthread_t communicationThread, monitorThread, threadDelay;
-extern pthread_mutex_t konto_mut, timerMutex;
-extern sem_t all_sem;
+extern pthread_t communicationThread/*, threadDelay*/;
+extern pthread_mutex_t timerMutex;
+extern sem_t pyrkonStartSem;
 // extern GQueue *delayStack; //do użytku wewnętrznego (implementacja opóźnień komunikacyjnych)
 
-extern void *monitorFunc();                     //wątek monitora, który po jakimś czasie ma wykryć stan
-extern void *comFunc(void *);                         //wątek komunikacyjny
 extern void sendPacket(packet_t *, int, int);
 
-#define max(a,b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a > _b ? _a : _b; })
-
-#define PROB_OF_SENDING 35
-#define PROB_OF_PASSIVE 5
-#define PROB_OF_SENDING_DECREASE 3
-#define PROB_SENDING_LOWER_LIMIT 1
-#define PROB_OF_PASSIVE_INCREASE 1
-
-/* makra do wypisywania na ekranie */
 #define P_WHITE printf("%c[%d;%dm",27,1,37);
 #define P_BLACK printf("%c[%d;%dm",27,1,30);
 #define P_RED printf("%c[%d;%dm",27,1,31);
@@ -70,21 +56,12 @@ extern void sendPacket(packet_t *, int, int);
 #define P_SET(X) printf("%c[%d;%dm",27,1,31+(6+X)%7);
 #define P_CLR printf("%c[%d;%dm",27,0,37);
 
-/* Tutaj dodaj odwołanie do zegara lamporta */
 #define println(FORMAT, ...) printf("%c[%d;%dm [%d][%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(rank/7))%2, 31+(6+rank)%7, rank, lamportTimer, ##__VA_ARGS__, 27,0,37);
-
-/* macro debug - działa jak printf, kiedy zdefiniowano
-   DEBUG, kiedy DEBUG niezdefiniowane działa jak instrukcja pusta 
-   
-   używa się dokładnie jak printfa, tyle, że dodaje kolorków i automatycznie
-   wyświetla rank
-
-   w związku z tym, zmienna "rank" musi istnieć.*/
 
 #ifdef DEBUG
 #define debug(...) printf("%c[%d;%dm [%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(rank/7))%2, 31+(6+rank)%7, rank, ##__VA_ARGS__, 27,0,37);
-
 #else
 #define debug(...) ;
 #endif
+
 #endif
