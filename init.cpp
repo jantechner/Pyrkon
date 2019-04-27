@@ -1,16 +1,19 @@
 #include "main.h"
 
-int rank, size, lamportTimer, pyrkonHost;
-volatile bool end = false;
+int processID, size, lamportTimer, pyrkonNumber = 0, pyrkonHost;
+int requestTimestamp = INT_MAX;
+volatile bool programEnd = false;
 
-pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER, timerMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER, 
+                timerMutex = PTHREAD_MUTEX_INITIALIZER;
 sem_t pyrkonStartSem;
 pthread_t communicationThread;
 
 extern void initializeHandlers();
-extern void *comFunc(void *);
+extern void * comFunc(void *);
 
-MPI_Datatype MPI_PAKIET_T;
+MPI_Datatype MPI_PACKET_T;
+
 
 // pthread_t threadDelay;
 // GQueue *delayStack;
@@ -23,18 +26,18 @@ MPI_Datatype MPI_PAKIET_T;
 } stackEl_t; */
 
 /* void *delayFunc(void *ptr) {   //Wątek wprowadzający sztuczne opóźnienia komunikacyjne
-    while (!end) {
+    while (!programEnd) {
 	int percent = (rand()%2 + 1);
         struct timespec t = { 0, percent*5000 };
         struct timespec rem = { 1, 0 };
-        if (!rank)
+        if (!processID)
         nanosleep(&t,&rem);
 	pthread_mutex_lock( &packetMut );
 	stackEl_t *stackEl = g_queue_pop_tail( delayStack );
 	pthread_mutex_unlock( &packetMut );
-        if (!end && stackEl) {
+        if (!programEnd && stackEl) {
 	//    println(" GOOD %d %p %d\n", end, stackEl, stackEl->type);
-	    MPI_Send( stackEl->newP, 1, MPI_PAKIET_T, stackEl->dst, stackEl->type, MPI_COMM_WORLD);
+	    MPI_Send( stackEl->newP, 1, MPI_PACKET_T, stackEl->dst, stackEl->type, MPI_COMM_WORLD);
 	    free(stackEl->newP);
 	    free(stackEl);
         }
@@ -71,28 +74,32 @@ void initializeMPI(int argc, char *argv[]) {
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
     // check_thread_support(provided);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);  
+    MPI_Comm_rank(MPI_COMM_WORLD, &processID);  
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 }
 
 void createMPIDataTypes() {
-    //MPI_PAKIET_T
-    const int nitems = FIELDNO;                             // Struktura ma FIELDNO elementów - przy dodaniu pola zwiększ FIELDNO w main.h !
-    int blocklengths[FIELDNO] = {1, 1, 1, 1};               /* tu zwiększyć na [4] = {1,1,1,1} gdy dodamy nowe pole */
+    //MPI_PACKET_T
+    const int nitems = FIELDNO;                    
+    int blocklengths[FIELDNO] = {1, 1, 1, 1, 1, 1, 1};          
     MPI_Aint offsets[FIELDNO];
     offsets[0] = offsetof(packet_t, ts);
-    offsets[1] = offsetof(packet_t, kasa);
-    offsets[2] = offsetof(packet_t, dst);
-    offsets[3] = offsetof(packet_t, src);                        
-    MPI_Datatype typy[FIELDNO] = {MPI_INT, MPI_INT, MPI_INT, MPI_INT};     /* tu dodać typ nowego pola (np MPI_BYTE, MPI_INT) */
-    MPI_Type_create_struct(nitems, blocklengths, offsets, typy, &MPI_PAKIET_T);
-    MPI_Type_commit(&MPI_PAKIET_T);
+    offsets[1] = offsetof(packet_t, requestTimestamp);
+    offsets[2] = offsetof(packet_t, pyrkonNumber);
+    offsets[3] = offsetof(packet_t, workshopNumber);
+    offsets[4] = offsetof(packet_t, ticketsNumber);
+
+    offsets[5] = offsetof(packet_t, dst);
+    offsets[6] = offsetof(packet_t, src);                        
+    MPI_Datatype typy[FIELDNO] = {MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT};     /* tu dodać typ nowego pola (np MPI_BYTE, MPI_INT) */
+    MPI_Type_create_struct(nitems, blocklengths, offsets, typy, &MPI_PACKET_T);
+    MPI_Type_commit(&MPI_PACKET_T);
 }
 
 void initializeLamportTimer() {
     lamportTimer = 0;               //wszyscy startują z zerowym zegarem 
     // pthread_mutex_lock(&timerMutex);
-    // lamportTimer = rank;
+    // lamportTimer = processID;
     // pthread_mutex_unlock(&timerMutex);
 }
 
@@ -103,12 +110,12 @@ void runThreads() {
 }
 
 void initialize(int argc, char *argv[]) {
-    // println("Process initialized\n");
+    println("Process initialized");
     initializeMPI(argc, argv);
     createMPIDataTypes();
     initializeLamportTimer();
     initializeHandlers();
-    srand(rank); //for every process set unique rand seed
+    srand(processID); //for every process set unique rand seed
     runThreads();
 }
 
@@ -118,7 +125,7 @@ void finalize(void) {
     sem_destroy(&pyrkonStartSem);
     //pthread_join(threadDelay,NULL);
 
-    MPI_Type_free(&MPI_PAKIET_T);
+    MPI_Type_free(&MPI_PACKET_T);
     MPI_Finalize();
     //g_queue_free(delayStack);
 }

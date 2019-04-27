@@ -8,6 +8,8 @@ void mainLoop();
 void notifyAll(int);
 void notifyOthers(int);
 void choosePyrkonHost();
+bool requestTimestampIsNeeded(int);
+string getMessageCode(int);
 // void determineWorkshopsDetails();
 
 int main(int argc, char *argv[]) {
@@ -19,8 +21,11 @@ int main(int argc, char *argv[]) {
 
 void mainLoop(void) {
     choosePyrkonHost();
-    if (rank == pyrkonHost) notifyAll(PYRKON_START);
-    // if (rank == pyrkonHost) determineWorkshopsDetails();
+    if (processID == pyrkonHost) {
+        notifyOthers(PYRKON_START);
+        pyrkonNumber++;
+    }
+    // if (processID == pyrkonHost) determineWorkshopsDetails();
 
     // wait a while
     int percent = rand() % 2 + 1;
@@ -28,7 +33,7 @@ void mainLoop(void) {
     struct timespec rem = {1, 0};
     nanosleep(&t, &rem);
 
-    if (rank == 0) notifyAll(FINISH);
+    if (processID == 0) notifyAll(FINISH);
 }
 
 void choosePyrkonHost() {
@@ -39,6 +44,8 @@ void choosePyrkonHost() {
 
     sem_init(&pyrkonStartSem, 0, 0);
     sem_wait(&pyrkonStartSem);
+
+    requestTimestamp = INT_MAX;
 }
 
 void notifyAll(int message) {
@@ -50,25 +57,24 @@ void notifyAll(int message) {
 void notifyOthers(int message) {
     packet_t pakiet;
     for (int dst = 0; dst < size; dst++) {
-        if (dst != rank ) {
+        if (dst != processID ) {
             sendPacket(&pakiet, dst, message);
-            println("Start pyrkon %d -> %d", rank, dst);
         }
     }
 }
 
 void sendPacket(packet_t *data, int dst, int type) {
-    if (/* type != WANT_START_PYRKON_ACK && */ type != WANT_START_PYRKON) {
-        pthread_mutex_lock(&timerMutex);
-        lamportTimer++;
-        pthread_mutex_unlock(&timerMutex);
-    }
-    
+
     pthread_mutex_lock(&timerMutex);
-    data->ts = lamportTimer;
+    data->ts = ++lamportTimer;
+    if (requestTimestampIsNeeded(type)) requestTimestamp = lamportTimer;
+    println("%s -> %d", getMessageCode(type).c_str(), dst);         /* printowanie w mutexie, żeby zapewnić idealną informację o punktach w czasie */
     pthread_mutex_unlock(&timerMutex);
 
-    MPI_Send(data, 1, MPI_PAKIET_T, dst, type, MPI_COMM_WORLD);
+    data->requestTimestamp = requestTimestamp;
+    data->pyrkonNumber = pyrkonNumber;
+
+    MPI_Send(data, 1, MPI_PACKET_T, dst, type, MPI_COMM_WORLD);
     
   /*   packet_t *newP = (packet_t *)malloc(sizeof(packet_t));
     stackEl_t *stackEl = (stackEl_t *)malloc(sizeof(stackEl_t));
@@ -80,4 +86,21 @@ void sendPacket(packet_t *data, int dst, int type) {
     g_queue_push_head( delayStack, stackEl );
     pthread_mutex_unlock( &packetMut ); */
     
+}
+
+string getMessageCode(int n) {
+    string code;
+
+    switch(n) {
+        case 1: code = "PYRKON_START"; break;
+        case 2: code = "FINISH"; break;
+        case 3: code = "WANT_START_PYRKON"; break;
+        case 4: code = "WANT_START_PYRKON_ACK"; break;
+        default: code = "UNKNOWN";
+    }
+    return code;
+}
+
+bool requestTimestampIsNeeded(int type) {
+    return requestTimestamp == INT_MAX && (int)getMessageCode(type).find("WANT") != -1 && (int)getMessageCode(type).find("ACK") == -1 ? true : false;
 }
