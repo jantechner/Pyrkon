@@ -6,7 +6,7 @@ volatile bool programEnd = false;
 
 pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER, 
                 timerMutex = PTHREAD_MUTEX_INITIALIZER;
-sem_t pyrkonStartSem;
+sem_t pyrkonStartSem, ticketsDetailsSem;
 pthread_t communicationThread;
 
 extern void initializeHandlers();

@@ -50,7 +50,7 @@ extern int lamportTimer;
 extern volatile bool programEnd;
 
 extern pthread_mutex_t timerMutex;
-extern sem_t pyrkonStartSem;
+extern sem_t pyrkonStartSem, ticketsDetailsSem;
 // extern GQueue *delayStack; //do użytku wewnętrznego (implementacja opóźnień komunikacyjnych)
 
 extern void sendPacket(packet_t *, int, int);

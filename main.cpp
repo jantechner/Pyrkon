@@ -6,9 +6,10 @@ extern void initialize(int argc, char **argv);
 extern void finalize();
 void mainLoop();
 void notifyAll(int);
-void notifyOthers(int);
+void notifyOthers(int, int, int);
 void choosePyrkonHost();
 bool requestTimestampIsNeeded(int);
+void waitFor(sem_t *);
 string getMessageCode(int);
 // void determineWorkshopsDetails();
 
@@ -22,9 +23,13 @@ int main(int argc, char *argv[]) {
 void mainLoop(void) {
     choosePyrkonHost();
     if (processID == pyrkonHost) {
-        notifyOthers(PYRKON_START);
+        notifyOthers(PYRKON_START, 0, 0);
         pyrkonNumber++;
+        
+    } else {
+        waitFor(&ticketsDetailsSem);
     }
+
     // if (processID == pyrkonHost) determineWorkshopsDetails();
 
     // wait a while
@@ -40,10 +45,11 @@ void choosePyrkonHost() {
     permissionsReceived = 0;
     pyrkonHost = -1;
 
-    notifyOthers(WANT_START_PYRKON);
+    notifyOthers(WANT_START_PYRKON, 0, 0);
 
-    sem_init(&pyrkonStartSem, 0, 0);
-    sem_wait(&pyrkonStartSem);
+    // sem_init(&pyrkonStartSem, 0, 0);
+    // sem_wait(&pyrkonStartSem);
+    waitFor(&pyrkonStartSem);
 
     requestTimestamp = INT_MAX;
 }
@@ -54,8 +60,10 @@ void notifyAll(int message) {
         sendPacket(&pakiet, dst, message);
 }
 
-void notifyOthers(int message) {
+void notifyOthers(int message, int workshopNumber, int ticketsNumber) {
     packet_t pakiet;
+    pakiet.workshopNumber = workshopNumber;
+    pakiet.ticketsNumber = ticketsNumber;
     for (int dst = 0; dst < size; dst++) {
         if (dst != processID ) {
             sendPacket(&pakiet, dst, message);
@@ -103,4 +111,9 @@ string getMessageCode(int n) {
 
 bool requestTimestampIsNeeded(int type) {
     return requestTimestamp == INT_MAX && (int)getMessageCode(type).find("WANT") != -1 && (int)getMessageCode(type).find("ACK") == -1 ? true : false;
+}
+
+void waitFor(sem_t *semaphore) {
+    sem_init(semaphore, 0, 0);
+    sem_wait(semaphore);
 }
