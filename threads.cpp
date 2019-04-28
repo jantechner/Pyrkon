@@ -6,7 +6,6 @@ extern void notifyAll(int, int, int);
 
 /* Wątek komunikacyjny - dla każdej otrzymanej wiadomości wywołuje jej handler */
 void *comFunc(void *ptr) {
-    // println("Wejście do wątku komunikacyjnego\n");
     MPI_Status status;
     packet_t pakiet;
 
@@ -20,24 +19,23 @@ void *comFunc(void *ptr) {
 
         pakiet.src = status.MPI_SOURCE;
 
-        if(pakiet.pyrkonNumber == pyrkonNumber) handlers[(int)status.MPI_TAG](&pakiet);
+        if (pakiet.pyrkonNumber == pyrkonNumber)        //protection from receiving messages from previous Pyrkon
+            handlers[(int)status.MPI_TAG](&pakiet);
     }
     return 0;
 }
 
-void * prepareAndSendTicketsDetails(void *ptr) {
 
-    int tickets = rand() % (size - 1) + 1;      //od 1 do size-1 biletów
-    println("                   Ilość biletów: %d", tickets);
+void *prepareAndSendTicketsDetails(void *ptr) {
+
+    int tickets = rand() % (size - 1) + 1; //od 1 do size-1 biletów
     notifyAll(PYRKON_TICKETS, 0, tickets);
 
-    int workshops = rand() % (MAX_WORKSHOPS - MIN_WORKSHOPS + 1) + MIN_WORKSHOPS;   //od MIN do MAX warsztatów
-    println("                   Ilość warsztatów: %d", workshops);
+    int workshops = rand() % (MAX_WORKSHOPS - MIN_WORKSHOPS + 1) + MIN_WORKSHOPS; //od MIN do MAX warsztatów
     notifyAll(WORKSHOPS_TICKETS, -1, workshops);
 
-    for (int i = 0; i<workshops; i++) {
-        int wTickets = rand() % size + 1;        // od 1 do wszystkich uczestników
-        println("                   Ilość miejsc na %d warsztacie: %d", i, wTickets);
+    for (int i = 0; i < workshops; i++) {
+        int wTickets = rand() % size + 1; // od 1 do wszystkich uczestników
         notifyAll(WORKSHOPS_TICKETS, i, wTickets);
     }
 

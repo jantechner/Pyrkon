@@ -6,13 +6,11 @@ extern void initialize(int argc, char **argv);
 extern void finalize();
 void mainLoop();
 void choosePyrkonHost();
-// void prepareAndSendTicketsDetails();
 void notifyAll(int, int, int);
 void notifyOthers(int, int, int);
 bool requestTimestampIsNeeded(int);
 void waitFor(sem_t *);
 string getMessageCode(int);
-// void determineWorkshopsDetails();
 
 int main(int argc, char *argv[]) {
     initialize(argc, argv);
@@ -31,14 +29,13 @@ void mainLoop(void) {
     waitFor(&ticketsDetailsSem);
     println("TICKETS DETAILS RECEIVED");
 
-
     // wait a while
     // int percent = rand() % 2 + 1;
     // struct timespec t = {percent, 0};
     // struct timespec rem = {1, 0};
     // nanosleep(&t, &rem);
 
-    // if (processID == 0) notifyAll(FINISH);
+    if (processID == 0) notifyAll(FINISH,0,0);
 }
 
 void choosePyrkonHost() {
@@ -50,22 +47,6 @@ void choosePyrkonHost() {
 
     requestTimestamp = INT_MAX;
 }
-
-// void prepareAndSendTicketsDetails() {
-//     pyrkonTicketsNumber = rand() % (size - 1) + 1;      //od 1 do size-1 biletów
-//     println("               Ilość biletów: %d", pyrkonTicketsNumber);
-//     notifyOthers(PYRKON_TICKETS, 0, pyrkonTicketsNumber);
-
-//     workshopsNumber = rand() % (MAX_WORKSHOPS - MIN_WORKSHOPS + 1) + MIN_WORKSHOPS;   //od MIN do MAX warsztatów
-//     println("               Ilość warsztatów: %d", workshopsNumber);
-//     notifyOthers(WORKSHOPS_TICKETS, -1, workshopsNumber);
-
-//     for (int i = 0; i<workshopsNumber; i++) {
-//         workshopsTickets[i] = rand() % size + 1;        // od 1 do wszystkich uczestników
-//         println("Ilość miejsc na %d warsztacie: %d", i, workshopsTickets[i]);
-//         notifyOthers(WORKSHOPS_TICKETS, i, workshopsTickets[i]);
-//     }
-// }
 
 void notifyAll(int message, int workshopNumber, int ticketsNumber) {
     packet_t pakiet;

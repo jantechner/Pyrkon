@@ -89,7 +89,6 @@ void createMPIDataTypes() {
     offsets[2] = offsetof(packet_t, pyrkonNumber);
     offsets[3] = offsetof(packet_t, workshopNumber);
     offsets[4] = offsetof(packet_t, ticketsNumber);
-
     offsets[5] = offsetof(packet_t, dst);
     offsets[6] = offsetof(packet_t, src);                        
     MPI_Datatype typy[FIELDNO] = {MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT};     /* tu dodać typ nowego pola (np MPI_BYTE, MPI_INT) */
@@ -124,6 +123,7 @@ void initialize(int argc, char *argv[]) {
 void finalize(void) {
     pthread_mutex_destroy(&timerMutex);
     pthread_join(communicationThread, NULL);
+    pthread_join(ticketsThread, NULL);
     sem_destroy(&pyrkonStartSem);
     //pthread_join(threadDelay,NULL);
 
