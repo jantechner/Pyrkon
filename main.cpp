@@ -5,9 +5,10 @@ int permissionsReceived;
 extern void initialize(int argc, char **argv);
 extern void finalize();
 void mainLoop();
-void notifyAll(int);
-void notifyOthers(int, int, int);
 void choosePyrkonHost();
+// void prepareAndSendTicketsDetails();
+void notifyAll(int, int, int);
+void notifyOthers(int, int, int);
 bool requestTimestampIsNeeded(int);
 void waitFor(sem_t *);
 string getMessageCode(int);
@@ -25,20 +26,19 @@ void mainLoop(void) {
     if (processID == pyrkonHost) {
         notifyOthers(PYRKON_START, 0, 0);
         pyrkonNumber++;
-        
-    } else {
-        waitFor(&ticketsDetailsSem);
+        pthread_create(&ticketsThread, NULL, prepareAndSendTicketsDetails, 0);
     }
+    waitFor(&ticketsDetailsSem);
+    println("TICKETS DETAILS RECEIVED");
 
-    // if (processID == pyrkonHost) determineWorkshopsDetails();
 
     // wait a while
-    int percent = rand() % 2 + 1;
-    struct timespec t = {percent, 0};
-    struct timespec rem = {1, 0};
-    nanosleep(&t, &rem);
+    // int percent = rand() % 2 + 1;
+    // struct timespec t = {percent, 0};
+    // struct timespec rem = {1, 0};
+    // nanosleep(&t, &rem);
 
-    if (processID == 0) notifyAll(FINISH);
+    // if (processID == 0) notifyAll(FINISH);
 }
 
 void choosePyrkonHost() {
@@ -46,16 +46,31 @@ void choosePyrkonHost() {
     pyrkonHost = -1;
 
     notifyOthers(WANT_START_PYRKON, 0, 0);
-
-    // sem_init(&pyrkonStartSem, 0, 0);
-    // sem_wait(&pyrkonStartSem);
     waitFor(&pyrkonStartSem);
 
     requestTimestamp = INT_MAX;
 }
 
-void notifyAll(int message) {
+// void prepareAndSendTicketsDetails() {
+//     pyrkonTicketsNumber = rand() % (size - 1) + 1;      //od 1 do size-1 biletów
+//     println("               Ilość biletów: %d", pyrkonTicketsNumber);
+//     notifyOthers(PYRKON_TICKETS, 0, pyrkonTicketsNumber);
+
+//     workshopsNumber = rand() % (MAX_WORKSHOPS - MIN_WORKSHOPS + 1) + MIN_WORKSHOPS;   //od MIN do MAX warsztatów
+//     println("               Ilość warsztatów: %d", workshopsNumber);
+//     notifyOthers(WORKSHOPS_TICKETS, -1, workshopsNumber);
+
+//     for (int i = 0; i<workshopsNumber; i++) {
+//         workshopsTickets[i] = rand() % size + 1;        // od 1 do wszystkich uczestników
+//         println("Ilość miejsc na %d warsztacie: %d", i, workshopsTickets[i]);
+//         notifyOthers(WORKSHOPS_TICKETS, i, workshopsTickets[i]);
+//     }
+// }
+
+void notifyAll(int message, int workshopNumber, int ticketsNumber) {
     packet_t pakiet;
+    pakiet.workshopNumber = workshopNumber;
+    pakiet.ticketsNumber = ticketsNumber;
     for (int dst = 0; dst < size; dst++)
         sendPacket(&pakiet, dst, message);
 }
@@ -98,12 +113,13 @@ void sendPacket(packet_t *data, int dst, int type) {
 
 string getMessageCode(int n) {
     string code;
-
     switch(n) {
-        case 1: code = "PYRKON_START"; break;
-        case 2: code = "FINISH"; break;
-        case 3: code = "WANT_START_PYRKON"; break;
-        case 4: code = "WANT_START_PYRKON_ACK"; break;
+        case PYRKON_START: code = "PYRKON_START"; break;
+        case FINISH: code = "FINISH"; break;
+        case WANT_START_PYRKON: code = "WANT_START_PYRKON"; break;
+        case WANT_START_PYRKON_ACK: code = "WANT_START_PYRKON_ACK"; break;
+        case PYRKON_TICKETS: code = "PYRKON_TICKETS"; break;
+        case WORKSHOPS_TICKETS: code = "WORKSHOPS_TICKETS"; break;
         default: code = "UNKNOWN";
     }
     return code;

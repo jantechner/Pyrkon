@@ -26,7 +26,7 @@ clear:
 	rm -f -r output pyrkon
 
 run: 
-	mpirun -np 4 pyrkon
+	mpirun -np 16 pyrkon
 
 reset: clear compile
 

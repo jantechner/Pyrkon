@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include <ctime>
 #include <algorithm>
 #include <string>
 
@@ -33,17 +34,22 @@ typedef void (*functionPointer)(packet_t *); //typ wskaźnik na funkcję zwracaj
 
 //Messages types
 #define PYRKON_START 1
-#define FINISH 2
-#define WANT_START_PYRKON 3
-#define WANT_START_PYRKON_ACK 4
-#define WANT_PYRKON_TICKET 5
-#define WANT_PYRKON_TICKET_ACK 6
-#define WANT_WORKSHOP_TICKET 7
-#define WANT_WORKSHOP_TICKET_ACK 8
-
-#define MAX_HANDLERS 9
+#define PYRKON_TICKETS 2
+#define WORKSHOPS_TICKETS 3
+#define FINISH 4
+#define WANT_START_PYRKON 5
+#define WANT_START_PYRKON_ACK 6
+#define WANT_PYRKON_TICKET 7
+#define WANT_PYRKON_TICKET_ACK 8
+#define WANT_WORKSHOP_TICKET 9
+#define WANT_WORKSHOP_TICKET_ACK 10
+#define MAX_HANDLERS 11
 
 extern int processID, size, pyrkonNumber, pyrkonHost;
+extern int pyrkonTicketsNumber, workshopsNumber;
+#define MIN_WORKSHOPS 3
+#define MAX_WORKSHOPS 8
+extern int* workshopsTickets;
 extern int requestTimestamp;
 extern int lamportTimer;
 
@@ -51,6 +57,8 @@ extern volatile bool programEnd;
 
 extern pthread_mutex_t timerMutex;
 extern sem_t pyrkonStartSem, ticketsDetailsSem;
+extern pthread_t ticketsThread;
+extern void * prepareAndSendTicketsDetails(void *);
 // extern GQueue *delayStack; //do użytku wewnętrznego (implementacja opóźnień komunikacyjnych)
 
 extern void sendPacket(packet_t *, int, int);

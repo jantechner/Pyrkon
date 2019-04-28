@@ -1,13 +1,14 @@
 #include "main.h"
 
-int processID, size, lamportTimer, pyrkonNumber = 0, pyrkonHost;
+int processID, size, lamportTimer, pyrkonNumber = 0, pyrkonHost, pyrkonTicketsNumber, workshopsNumber;
+int* workshopsTickets;
 int requestTimestamp = INT_MAX;
 volatile bool programEnd = false;
 
 pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER, 
                 timerMutex = PTHREAD_MUTEX_INITIALIZER;
 sem_t pyrkonStartSem, ticketsDetailsSem;
-pthread_t communicationThread;
+pthread_t communicationThread, ticketsThread;
 
 extern void initializeHandlers();
 extern void * comFunc(void *);
@@ -115,7 +116,8 @@ void initialize(int argc, char *argv[]) {
     createMPIDataTypes();
     initializeLamportTimer();
     initializeHandlers();
-    srand(processID); //for every process set unique rand seed
+    // srand(processID); //for every process set unique rand seed
+    srand(time(NULL));
     runThreads();
 }
 
