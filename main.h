@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <ctime>
 #include <algorithm>
-#include <queue>
+#include <deque>
 #include <string>
 
 using namespace std;
@@ -37,14 +37,15 @@ typedef void (*functionPointer)(packet_t *); //typ wskaźnik na funkcję zwracaj
 #define PYRKON_START 1
 #define PYRKON_TICKETS 2
 #define WORKSHOPS_TICKETS 3
-#define FINISH 4
-#define WANT_START_PYRKON 5
-#define WANT_START_PYRKON_ACK 6
-#define WANT_PYRKON_TICKET 7
-#define WANT_PYRKON_TICKET_ACK 8
-#define WANT_WORKSHOP_TICKET 9
-#define WANT_WORKSHOP_TICKET_ACK 10
-#define MAX_HANDLERS 11
+#define LEAVE_PYRKON 4
+#define FINISH 5
+#define WANT_START_PYRKON 6
+#define WANT_START_PYRKON_ACK 7
+#define WANT_PYRKON_TICKET 8
+#define WANT_PYRKON_TICKET_ACK 9
+#define WANT_WORKSHOP_TICKET 10
+#define WANT_WORKSHOP_TICKET_ACK 11
+#define MAX_HANDLERS 12
 
 extern int processID, size, pyrkonNumber, pyrkonHost;
 extern int pyrkonTicketsNumber, workshopsNumber;
@@ -58,7 +59,7 @@ extern volatile bool programEnd;
 extern volatile bool pyrkonVisited;
 
 extern pthread_mutex_t timerMutex;
-extern sem_t pyrkonStartSem, ticketsDetailsSem, pyrkonTicketSem;
+extern sem_t pyrkonStartSem, ticketsDetailsSem, pyrkonTicketSem, allLeavedPyrkon;
 extern pthread_t ticketsThread;
 extern void * prepareAndSendTicketsDetails(void *);
 // extern GQueue *delayStack; //do użytku wewnętrznego (implementacja opóźnień komunikacyjnych)
@@ -75,7 +76,7 @@ extern void sendPacket(packet_t *, int, int);
 #define P_SET(X) printf("%c[%d;%dm",27,1,31+(6+X)%7);
 #define P_CLR printf("%c[%d;%dm",27,0,37);
 
-#define println(FORMAT, ...) printf("%c[%d;%dm [%d][%d][%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(processID/7))%2, 31+(6+processID)%7, processID, lamportTimer, requestTimestamp == INT_MAX ? -1 : requestTimestamp, ##__VA_ARGS__, 27,0,37);
+#define println(FORMAT, ...) printf("%c[%d;%dm [%d][%d][%d][%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(processID/7))%2, 31+(6+processID)%7, processID, lamportTimer, requestTimestamp == INT_MAX ? 0 : requestTimestamp, pyrkonTicketRequestTS == INT_MAX ? 0 : pyrkonTicketRequestTS, ##__VA_ARGS__, 27,0,37);
 
 #ifdef DEBUG
 #define debug(...) printf("%c[%d;%dm [%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(processID/7))%2, 31+(6+processID)%7, processID, ##__VA_ARGS__, 27,0,37);

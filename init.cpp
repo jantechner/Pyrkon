@@ -1,6 +1,6 @@
 #include "main.h"
 
-int processID, size, lamportTimer, pyrkonNumber = 0, pyrkonHost, pyrkonTicketsNumber, workshopsNumber;
+int processID, size, lamportTimer, pyrkonNumber = 0, pyrkonHost = -1, pyrkonTicketsNumber, workshopsNumber;
 int* workshopsTickets;
 int requestTimestamp = INT_MAX;
 int pyrkonTicketRequestTS = INT_MAX;
@@ -9,7 +9,7 @@ volatile bool pyrkonVisited = false;
 
 pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER, 
                 timerMutex = PTHREAD_MUTEX_INITIALIZER;
-sem_t pyrkonStartSem, ticketsDetailsSem, pyrkonTicketSem;
+sem_t pyrkonStartSem, ticketsDetailsSem, pyrkonTicketSem, allLeavedPyrkon;
 pthread_t communicationThread, ticketsThread;
 
 extern void initializeHandlers();
@@ -115,6 +115,7 @@ void initializeSemaphores() {
     sem_init(&pyrkonStartSem, 0, 0);
     sem_init(&ticketsDetailsSem, 0, 0);
     sem_init(&pyrkonTicketSem, 0, 0);
+    sem_init(&allLeavedPyrkon, 0, 0);
 }
 
 void initialize(int argc, char *argv[]) {

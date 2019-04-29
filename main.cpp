@@ -1,6 +1,6 @@
 #include "main.h"
 
-int permissionsReceived, pyrkonTicketPermissionsReceived;
+int permissionsReceived, pyrkonTicketPermissionsReceived, leavedPyrkon = 0;
 bool hasPyrkonTicket;
 
 extern void initialize(int argc, char **argv);
@@ -23,32 +23,44 @@ int main(int argc, char *argv[]) {
 }
 
 void mainLoop(void) {
-    choosePyrkonHost();
-    if (processID == pyrkonHost) {
-        notifyOthers(PYRKON_START, 0, 0);
-        pyrkonNumber++;
-        pthread_create(&ticketsThread, NULL, prepareAndSendTicketsDetails, 0);
+    for(int i=0; i<3; i++) {
+        // sleep(3);   //te 3 sekundy chronią przed wyścigiem jednego procesu
+        println("                                                       NEW PYRKON");
+        leavedPyrkon = 0;
+        
+        choosePyrkonHost();     //jeden proces, korzystając z faktu, że inne nie rozpoczęły jeszcze nowego Pyrkonu może stać się hostem i wysyłać nowe informacje 
+        if (processID == pyrkonHost) {    //ostatni, który wysyła informację, że wyszedł mógłby być nowym hostem 
+            notifyOthers(PYRKON_START, 0, 0);
+            pyrkonNumber++;
+            pthread_create(&ticketsThread, NULL, prepareAndSendTicketsDetails, 0);
+        }
+        waitFor(&ticketsDetailsSem);
+        
+        getPyrkonTicket();
+
+        println("ENTER PYRKON");
+
+        // wait a while
+        int time = rand() % 4 + 2;
+        sleep(time);    
+
+        println("EXIT PYRKON");
+
+        freePyrkonTicket();
+
+        pyrkonHost = -1;
+        notifyAll(LEAVE_PYRKON, 0, 0);
+
+        waitFor(&allLeavedPyrkon);
+       
     }
-    waitFor(&ticketsDetailsSem);
-    
-    getPyrkonTicket();
-
-    println("ENTER PYRKON");
-
-    // wait a while
-    // int time = rand() % 4 + 2;
-    sleep(5);    
-
-    println("EXIT PYRKON");
-
-    freePyrkonTicket();
 
     // if (processID == 0) notifyAll(FINISH,0,0);
 }
 
 void choosePyrkonHost() {
     permissionsReceived = 0;
-    pyrkonHost = -1;
+    
 
     notifyOthers(WANT_START_PYRKON, 0, 0);
     waitFor(&pyrkonStartSem);
@@ -118,6 +130,7 @@ string getMessageCode(int n) {
         case WORKSHOPS_TICKETS: code = "WORKSHOPS_TICKETS"; break;
         case WANT_PYRKON_TICKET: code = "WANT_PYRKON_TICKET"; break;
         case WANT_PYRKON_TICKET_ACK: code = "WANT_PYRKON_TICKET_ACK"; break;
+        case LEAVE_PYRKON: code = "LEAVE_PYRKON"; break;
         default: code = "UNKNOWN";
     }
     return code;

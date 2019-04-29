@@ -1,9 +1,9 @@
 #include "main.h"
 
-extern int permissionsReceived, pyrkonTicketPermissionsReceived;
+extern int permissionsReceived, pyrkonTicketPermissionsReceived, leavedPyrkon;
 extern bool hasPyrkonTicket;
 int workshopsTicketsNumberReceived;
-queue<int> waitingForPyrkonTicket;
+deque<int> waitingForPyrkonTicket;
 
 
 void startPyrkonRequestHandler(packet_t *);
@@ -13,6 +13,7 @@ void wantPyrkonTicketAckHandler(packet_t *);
 void startPyrkonHandler(packet_t *);
 void pyrkonTicketsHandler(packet_t *);
 void workshopsTicketsHandler(packet_t *);
+void leavePyrkonHandler(packet_t *);
 void finishHandler(packet_t *);
 
 functionPointer handlers[MAX_HANDLERS];
@@ -25,12 +26,13 @@ void initializeHandlers() {
     handlers[PYRKON_START] = startPyrkonHandler;
     handlers[PYRKON_TICKETS] = pyrkonTicketsHandler;
     handlers[WORKSHOPS_TICKETS] = workshopsTicketsHandler;
+    handlers[LEAVE_PYRKON] = leavePyrkonHandler;
     handlers[FINISH] = finishHandler;
 }
 
 void startPyrkonRequestHandler(packet_t *pakiet) {
     int requestFrom = pakiet->src;
-    println("       Timery: %d %d", requestTimestamp, pakiet->requestTimestamp);
+    println("       Timery: %d %d ProcessID: %d  Host: %d", requestTimestamp, pakiet->requestTimestamp, processID, pyrkonHost);
     if (processID != pyrkonHost) {
         if (requestTimestamp > pakiet->requestTimestamp || (requestTimestamp == pakiet->requestTimestamp && processID > requestFrom)) {
             pakiet->src = processID;
@@ -59,7 +61,7 @@ void wantPyrkonTicketHandler(packet_t *pakiet) {
             pakiet->src = processID;
             sendPacket(pakiet, requestFrom, WANT_PYRKON_TICKET_ACK);
         } else {
-            waitingForPyrkonTicket.push(requestFrom);
+            waitingForPyrkonTicket.push_back(requestFrom);
         }
     } else {
         packet_t pakiet2;
@@ -72,7 +74,7 @@ void freePyrkonTicket() {
     while (!waitingForPyrkonTicket.empty()) {
         packet_t pakiet;
         sendPacket(&pakiet, waitingForPyrkonTicket.front(), WANT_PYRKON_TICKET_ACK);
-        waitingForPyrkonTicket.pop();
+        waitingForPyrkonTicket.pop_front();
     }
 }
 
@@ -87,10 +89,9 @@ void wantPyrkonTicketAckHandler(packet_t *pakiet) {
     }
 }
 
-
 void startPyrkonHandler(packet_t *pakiet) {
     pyrkonNumber++;
-    pyrkonHost = pakiet->src;
+    pyrkonHost = pakiet->src;  //teorytycznie niepotrzebne, bo tylko host musi wiedzieć, że jest hostem 
     requestTimestamp = INT_MAX;
     sem_post(&pyrkonStartSem);
 }
@@ -106,6 +107,7 @@ void workshopsTicketsHandler(packet_t *pakiet) {
     if (pakiet->workshopNumber == -1) {
         workshopsNumber = pakiet->ticketsNumber;
         delete [] workshopsTickets;                         /* delete previous tickets */
+        workshopsTickets = NULL;
         workshopsTickets = new int[workshopsNumber];    /* allocate memory for new tickets */
         workshopsTicketsNumberReceived = 0;
         println("Workshops number : %d", pakiet->ticketsNumber);
@@ -116,6 +118,14 @@ void workshopsTicketsHandler(packet_t *pakiet) {
         if (workshopsTicketsNumberReceived == workshopsNumber) {
             sem_post(&ticketsDetailsSem);
         }
+    }
+}
+
+void leavePyrkonHandler(packet_t * pakiet) {
+    leavedPyrkon++;
+    println("               WYSZŁO JUŻ %d", leavedPyrkon);
+    if (leavedPyrkon == size) {
+        sem_post(&allLeavedPyrkon);
     }
 }
 
