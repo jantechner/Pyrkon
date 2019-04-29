@@ -1,14 +1,17 @@
 #include "main.h"
 
-int permissionsReceived;
+int permissionsReceived, pyrkonTicketPermissionsReceived;
+bool hasPyrkonTicket;
 
 extern void initialize(int argc, char **argv);
 extern void finalize();
+extern void freePyrkonTicket();
 void mainLoop();
 void choosePyrkonHost();
+void getPyrkonTicket();
 void notifyAll(int, int, int);
 void notifyOthers(int, int, int);
-bool requestTimestampIsNeeded(int);
+void setRequestTimestamp(packet_t*, int, int);
 void waitFor(sem_t *);
 string getMessageCode(int);
 
@@ -27,15 +30,20 @@ void mainLoop(void) {
         pthread_create(&ticketsThread, NULL, prepareAndSendTicketsDetails, 0);
     }
     waitFor(&ticketsDetailsSem);
-    println("TICKETS DETAILS RECEIVED");
+    
+    getPyrkonTicket();
+
+    println("ENTER PYRKON");
 
     // wait a while
-    // int percent = rand() % 2 + 1;
-    // struct timespec t = {percent, 0};
-    // struct timespec rem = {1, 0};
-    // nanosleep(&t, &rem);
+    // int time = rand() % 4 + 2;
+    sleep(5);    
 
-    if (processID == 0) notifyAll(FINISH,0,0);
+    println("EXIT PYRKON");
+
+    freePyrkonTicket();
+
+    // if (processID == 0) notifyAll(FINISH,0,0);
 }
 
 void choosePyrkonHost() {
@@ -44,8 +52,16 @@ void choosePyrkonHost() {
 
     notifyOthers(WANT_START_PYRKON, 0, 0);
     waitFor(&pyrkonStartSem);
+}
 
-    requestTimestamp = INT_MAX;
+void getPyrkonTicket() {
+    println("                                            WANT TICKET");
+    pyrkonTicketPermissionsReceived = 0;
+    hasPyrkonTicket = false;
+    pyrkonVisited = false;
+
+    notifyOthers(WANT_PYRKON_TICKET, 0, 0);
+    waitFor(&pyrkonTicketSem);
 }
 
 void notifyAll(int message, int workshopNumber, int ticketsNumber) {
@@ -71,11 +87,10 @@ void sendPacket(packet_t *data, int dst, int type) {
 
     pthread_mutex_lock(&timerMutex);
     data->ts = ++lamportTimer;
-    if (requestTimestampIsNeeded(type)) requestTimestamp = lamportTimer;
+    setRequestTimestamp(data, lamportTimer, type);                  /* jeżeli konieczne, ustaw requestTimer na aktualny lamportTimer - Ricart Agrawala Aglorithm */
     println("%s -> %d", getMessageCode(type).c_str(), dst);         /* printowanie w mutexie, żeby zapewnić idealną informację o punktach w czasie */
     pthread_mutex_unlock(&timerMutex);
 
-    data->requestTimestamp = requestTimestamp;
     data->pyrkonNumber = pyrkonNumber;
 
     MPI_Send(data, 1, MPI_PACKET_T, dst, type, MPI_COMM_WORLD);
@@ -101,16 +116,30 @@ string getMessageCode(int n) {
         case WANT_START_PYRKON_ACK: code = "WANT_START_PYRKON_ACK"; break;
         case PYRKON_TICKETS: code = "PYRKON_TICKETS"; break;
         case WORKSHOPS_TICKETS: code = "WORKSHOPS_TICKETS"; break;
+        case WANT_PYRKON_TICKET: code = "WANT_PYRKON_TICKET"; break;
+        case WANT_PYRKON_TICKET_ACK: code = "WANT_PYRKON_TICKET_ACK"; break;
         default: code = "UNKNOWN";
     }
     return code;
 }
 
-bool requestTimestampIsNeeded(int type) {
-    return requestTimestamp == INT_MAX && (int)getMessageCode(type).find("WANT") != -1 && (int)getMessageCode(type).find("ACK") == -1 ? true : false;
+void setRequestTimestamp(packet_t * data, int timer, int type) {
+
+    if (type == WANT_START_PYRKON) {
+        if (requestTimestamp == INT_MAX) {
+            requestTimestamp = timer;
+        } 
+        data->requestTimestamp = requestTimestamp;
+    } else if (type == WANT_PYRKON_TICKET) {
+        if (pyrkonTicketRequestTS == INT_MAX) {
+            pyrkonTicketRequestTS = timer;
+        }
+        data->requestTimestamp = pyrkonTicketRequestTS;
+    } else {
+        data->requestTimestamp = 0;
+    }
 }
 
 void waitFor(sem_t *semaphore) {
-    sem_init(semaphore, 0, 0);
     sem_wait(semaphore);
 }

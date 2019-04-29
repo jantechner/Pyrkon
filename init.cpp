@@ -3,11 +3,13 @@
 int processID, size, lamportTimer, pyrkonNumber = 0, pyrkonHost, pyrkonTicketsNumber, workshopsNumber;
 int* workshopsTickets;
 int requestTimestamp = INT_MAX;
+int pyrkonTicketRequestTS = INT_MAX;
 volatile bool programEnd = false;
+volatile bool pyrkonVisited = false;
 
 pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER, 
                 timerMutex = PTHREAD_MUTEX_INITIALIZER;
-sem_t pyrkonStartSem, ticketsDetailsSem;
+sem_t pyrkonStartSem, ticketsDetailsSem, pyrkonTicketSem;
 pthread_t communicationThread, ticketsThread;
 
 extern void initializeHandlers();
@@ -109,6 +111,12 @@ void runThreads() {
     //pthread_create( &threadDelay, NULL, delayFunc, 0);
 }
 
+void initializeSemaphores() {
+    sem_init(&pyrkonStartSem, 0, 0);
+    sem_init(&ticketsDetailsSem, 0, 0);
+    sem_init(&pyrkonTicketSem, 0, 0);
+}
+
 void initialize(int argc, char *argv[]) {
     println("Process initialized");
     initializeMPI(argc, argv);
@@ -117,6 +125,7 @@ void initialize(int argc, char *argv[]) {
     initializeHandlers();
     // srand(processID); //for every process set unique rand seed
     srand(time(NULL));
+    initializeSemaphores();
     runThreads();
 }
 
@@ -125,6 +134,7 @@ void finalize(void) {
     pthread_join(communicationThread, NULL);
     pthread_join(ticketsThread, NULL);
     sem_destroy(&pyrkonStartSem);
+    sem_destroy(&pyrkonTicketSem);
     //pthread_join(threadDelay,NULL);
 
     MPI_Type_free(&MPI_PACKET_T);

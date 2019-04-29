@@ -1,10 +1,15 @@
 #include "main.h"
 
-extern int permissionsReceived;
+extern int permissionsReceived, pyrkonTicketPermissionsReceived;
+extern bool hasPyrkonTicket;
 int workshopsTicketsNumberReceived;
+queue<int> waitingForPyrkonTicket;
+
 
 void startPyrkonRequestHandler(packet_t *);
 void startPyrkonPermissionHandler(packet_t *);
+void wantPyrkonTicketHandler(packet_t *);
+void wantPyrkonTicketAckHandler(packet_t *);
 void startPyrkonHandler(packet_t *);
 void pyrkonTicketsHandler(packet_t *);
 void workshopsTicketsHandler(packet_t *);
@@ -15,6 +20,8 @@ functionPointer handlers[MAX_HANDLERS];
 void initializeHandlers() {
     handlers[WANT_START_PYRKON] = startPyrkonRequestHandler;
     handlers[WANT_START_PYRKON_ACK] = startPyrkonPermissionHandler;
+    handlers[WANT_PYRKON_TICKET] = wantPyrkonTicketHandler;
+    handlers[WANT_PYRKON_TICKET_ACK] = wantPyrkonTicketAckHandler;
     handlers[PYRKON_START] = startPyrkonHandler;
     handlers[PYRKON_TICKETS] = pyrkonTicketsHandler;
     handlers[WORKSHOPS_TICKETS] = workshopsTicketsHandler;
@@ -38,19 +45,61 @@ void startPyrkonPermissionHandler(packet_t *pakiet) {
     if (permissionsReceived == size - 1) {
         println("I AM PYRKON HOST\n");
         pyrkonHost = processID;
+        requestTimestamp = INT_MAX;
         sem_post(&pyrkonStartSem);
     }
 }
 
+void wantPyrkonTicketHandler(packet_t *pakiet) {
+    int requestFrom = pakiet->src;
+    println("       Timery: %d %d", pyrkonTicketRequestTS, pakiet->requestTimestamp);
+
+    if (!pyrkonVisited) {
+        if (!hasPyrkonTicket && (pyrkonTicketRequestTS > pakiet->requestTimestamp || (pyrkonTicketRequestTS == pakiet->requestTimestamp && processID > requestFrom))) {
+            pakiet->src = processID;
+            sendPacket(pakiet, requestFrom, WANT_PYRKON_TICKET_ACK);
+        } else {
+            waitingForPyrkonTicket.push(requestFrom);
+        }
+    } else {
+        packet_t pakiet2;
+        sendPacket(&pakiet2, requestFrom, WANT_PYRKON_TICKET_ACK);
+    }
+}
+
+void freePyrkonTicket() {
+    pyrkonVisited = true;
+    while (!waitingForPyrkonTicket.empty()) {
+        packet_t pakiet;
+        sendPacket(&pakiet, waitingForPyrkonTicket.front(), WANT_PYRKON_TICKET_ACK);
+        waitingForPyrkonTicket.pop();
+    }
+}
+
+void wantPyrkonTicketAckHandler(packet_t *pakiet) {
+    pyrkonTicketPermissionsReceived++;
+    println("               TICKET PERMISSION od %d || Otrzymano już %d", pakiet->src, pyrkonTicketPermissionsReceived);
+    if (pyrkonTicketPermissionsReceived == size - pyrkonTicketsNumber) {
+        println("I HAVE PYRKON TICKET\n");
+        hasPyrkonTicket = true;
+        pyrkonTicketRequestTS = INT_MAX;
+        sem_post(&pyrkonTicketSem);
+    }
+}
+
+
 void startPyrkonHandler(packet_t *pakiet) {
     pyrkonNumber++;
     pyrkonHost = pakiet->src;
+    requestTimestamp = INT_MAX;
     sem_post(&pyrkonStartSem);
 }
 
 void pyrkonTicketsHandler(packet_t *pakiet) {
     pyrkonTicketsNumber = pakiet->ticketsNumber;
     println("Pyrkon tickets: %d", pyrkonTicketsNumber);
+    println("TICKETS DETAILS RECEIVED");
+    sem_post(&ticketsDetailsSem);
 }
 
 void workshopsTicketsHandler(packet_t *pakiet) {

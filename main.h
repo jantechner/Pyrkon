@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <ctime>
 #include <algorithm>
+#include <queue>
 #include <string>
 
 using namespace std;
@@ -50,13 +51,14 @@ extern int pyrkonTicketsNumber, workshopsNumber;
 #define MIN_WORKSHOPS 3
 #define MAX_WORKSHOPS 8
 extern int* workshopsTickets;
-extern int requestTimestamp;
+extern int requestTimestamp, pyrkonTicketRequestTS;
 extern int lamportTimer;
 
 extern volatile bool programEnd;
+extern volatile bool pyrkonVisited;
 
 extern pthread_mutex_t timerMutex;
-extern sem_t pyrkonStartSem, ticketsDetailsSem;
+extern sem_t pyrkonStartSem, ticketsDetailsSem, pyrkonTicketSem;
 extern pthread_t ticketsThread;
 extern void * prepareAndSendTicketsDetails(void *);
 // extern GQueue *delayStack; //do użytku wewnętrznego (implementacja opóźnień komunikacyjnych)
