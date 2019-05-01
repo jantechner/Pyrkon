@@ -1,11 +1,11 @@
 #include "main.h"
 
-int processID, size, lamportTimer, pyrkonNumber = 0, pyrkonHost = -1, pyrkonTicketsNumber, workshopsNumber;
+int processId, size, lamportTimer, pyrkonNumber = 0, pyrkonHost = -1, workshopsNumber;
 int* workshopsTickets;
-int requestTimestamp = INT_MAX;
-int pyrkonTicketRequestTS = INT_MAX;
+int requestTS = INT_MAX;
 volatile bool programEnd = false;
-volatile bool pyrkonVisited = false;
+
+ticketHandler pyrkonTicket;
 
 pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER, 
                 timerMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -33,7 +33,7 @@ MPI_Datatype MPI_PACKET_T;
 	int percent = (rand()%2 + 1);
         struct timespec t = { 0, percent*5000 };
         struct timespec rem = { 1, 0 };
-        if (!processID)
+        if (!processId)
         nanosleep(&t,&rem);
 	pthread_mutex_lock( &packetMut );
 	stackEl_t *stackEl = g_queue_pop_tail( delayStack );
@@ -77,7 +77,7 @@ void initializeMPI(int argc, char *argv[]) {
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
     // check_thread_support(provided);
-    MPI_Comm_rank(MPI_COMM_WORLD, &processID);  
+    MPI_Comm_rank(MPI_COMM_WORLD, &processId);  
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 }
 
@@ -87,7 +87,7 @@ void createMPIDataTypes() {
     int blocklengths[FIELDNO] = {1, 1, 1, 1, 1, 1, 1};          
     MPI_Aint offsets[FIELDNO];
     offsets[0] = offsetof(packet_t, ts);
-    offsets[1] = offsetof(packet_t, requestTimestamp);
+    offsets[1] = offsetof(packet_t, requestTS);
     offsets[2] = offsetof(packet_t, pyrkonNumber);
     offsets[3] = offsetof(packet_t, workshopNumber);
     offsets[4] = offsetof(packet_t, ticketsNumber);
@@ -101,7 +101,7 @@ void createMPIDataTypes() {
 void initializeLamportTimer() {
     lamportTimer = 0;               //wszyscy startują z zerowym zegarem 
     // pthread_mutex_lock(&timerMutex);
-    // lamportTimer = processID;
+    // lamportTimer = processId;
     // pthread_mutex_unlock(&timerMutex);
 }
 
@@ -124,7 +124,7 @@ void initialize(int argc, char *argv[]) {
     createMPIDataTypes();
     initializeLamportTimer();
     initializeHandlers();
-    // srand(processID); //for every process set unique rand seed
+    // srand(processId); //for every process set unique rand seed
     srand(time(NULL));
     initializeSemaphores();
     runThreads();
