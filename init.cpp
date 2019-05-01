@@ -1,15 +1,15 @@
 #include "main.h"
 
-int processId, size, lamportTimer, pyrkonNumber = 0, pyrkonHost = -1, workshopsNumber;
+int processId, size, lamportTimer, pyrkonNumber = 0, workshopsNumber;
+int noHostsPermissions = 0;
 int* workshopsTickets;
-int requestTS = INT_MAX;
 volatile bool programEnd = false;
 
-ticketHandler pyrkonTicket;
+mutualExclusionStruct pyrkonHost, pyrkonTicket;
 
 pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER, 
                 timerMutex = PTHREAD_MUTEX_INITIALIZER;
-sem_t pyrkonStartSem, ticketsDetailsSem, pyrkonTicketSem, allLeavedPyrkon;
+sem_t pyrkonHostSem, pyrkonStartSem, ticketsDetailsSem, pyrkonTicketSem, allLeftPyrkon, pyrkonNumberIncrementedSem;
 pthread_t communicationThread, ticketsThread;
 
 extern void initializeHandlers();
@@ -112,21 +112,24 @@ void runThreads() {
 }
 
 void initializeSemaphores() {
+    sem_init(&pyrkonHostSem, 0, 0);
     sem_init(&pyrkonStartSem, 0, 0);
     sem_init(&ticketsDetailsSem, 0, 0);
     sem_init(&pyrkonTicketSem, 0, 0);
-    sem_init(&allLeavedPyrkon, 0, 0);
+    sem_init(&allLeftPyrkon, 0, 0);
+    sem_init(&pyrkonNumberIncrementedSem, 0, 0);
 }
 
 void initialize(int argc, char *argv[]) {
-    println("Process initialized");
+    
     initializeMPI(argc, argv);
     createMPIDataTypes();
     initializeLamportTimer();
     initializeHandlers();
     // srand(processId); //for every process set unique rand seed
     srand(time(NULL));
-    initializeSemaphores();
+    initializeSemaphores();  //musi być przed inicjalizacją wątków
+    println("Process initialized");
     runThreads();
 }
 

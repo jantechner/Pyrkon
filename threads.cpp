@@ -31,13 +31,14 @@ void *prepareAndSendTicketsDetails(void *ptr) {
     int tickets = rand() % (size - 1) + 1; //od 1 do size-1 biletów
     notifyAll(PYRKON_TICKETS, 0, tickets);
 
-    // int workshops = rand() % (MAX_WORKSHOPS - MIN_WORKSHOPS + 1) + MIN_WORKSHOPS; //od MIN do MAX warsztatów
-    // notifyAll(WORKSHOPS_TICKETS, -1, workshops);
 
-    // for (int i = 0; i < workshops; i++) {
-    //     int wTickets = rand() % size + 1; // od 1 do wszystkich uczestników
-    //     notifyAll(WORKSHOPS_TICKETS, i, wTickets);
-    // }
+    int workshops = rand() % (MAX_WORKSHOPS - MIN_WORKSHOPS + 1) + MIN_WORKSHOPS; //od MIN do MAX warsztatów
+    notifyAll(WORKSHOPS_TICKETS, -1, workshops);
+
+    for (int i = 0; i < workshops; i++) {
+        int wTickets = rand() % size + 1; // od 1 do wszystkich uczestników
+        notifyAll(WORKSHOPS_TICKETS, i, wTickets);
+    }
 
     println("TICKETS DETAILS SENT");
     return 0;
