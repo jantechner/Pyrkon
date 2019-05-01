@@ -14,6 +14,7 @@ void leavePyrkonAndWaitForOthers();
 void notifyAll(int, int, int);
 void notifyOthers(int, int, int);
 void setrequestTS(packet_t *, int, int);
+
 void waitFor(sem_t *);
 string getMessageCode(int);
 
@@ -32,12 +33,14 @@ void mainLoop(void) {
         safelyIncrementPyrkonNumber();  //wbrew pozorom nie jest to takie trywialne, bo wiadomości o innym numerze Pyrkonu są odrzucane !!!
         getTicketsDetails();
         getPyrkonTicket();
+            println("ENTER PYRKON");
 
         // int time = rand() % 4 + 2;
         println("ENTER PYRKON for %d seconds", 1);
         // sleep(1);
         println("EXIT PYRKON");
 
+            println("EXIT PYRKON");
         freePyrkonTicket();
 
         // leavePyrkonAndWaitForOthers();       //nieużywane 

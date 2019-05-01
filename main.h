@@ -91,6 +91,7 @@ extern void sendPacket(packet_t *, int, int);
 
 #define println(FORMAT, ...) printf("%c[%d;%dm [%d][%d][%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(processId/7))%2, 31+(6+processId)%7, processId, lamportTimer, pyrkonNumber, ##__VA_ARGS__, 27,0,37);
 
+
 #ifdef DEBUG
 #define debug(...) printf("%c[%d;%dm [%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(processId/7))%2, 31+(6+processId)%7, processId, ##__VA_ARGS__, 27,0,37);
 #else

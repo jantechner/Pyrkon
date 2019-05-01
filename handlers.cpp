@@ -31,6 +31,7 @@ void initializeHandlers() {
     handlers[PYRKON_NUMBER_INCREMENTED] = pyrkonNumberIncremented;
 }
 
+
 void wantToBeHostHandler(packet_t *pakiet) {
     int senderId = pakiet->src;
     // println("       Timery: %d %d, ID: %d %d", pyrkonHost.requestTS, pakiet->requestTS, processId, senderId);
@@ -102,6 +103,16 @@ void wantPyrkonTicketAckHandler(packet_t *pakiet) {
             pyrkonTicket.permissions = 0;
             sem_post(&pyrkonTicketSem);
         }
+    }
+}
+
+void freePyrkonTicket() {
+    pyrkonTicket.want = false;
+    pyrkonTicket.has = false;
+    while (!pyrkonTicket.waiting.empty()) {
+        packet_t pakiet;
+        sendPacket(&pakiet, pyrkonTicket.waiting.front(), WANT_PYRKON_TICKET_ACK);
+        pyrkonTicket.waiting.pop_front();
     }
 }
 
