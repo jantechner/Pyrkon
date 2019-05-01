@@ -32,10 +32,10 @@ void initializeHandlers() {
 
 void startPyrkonRequestHandler(packet_t *pakiet) {
     int requestFrom = pakiet->src;
-    println("       Timery: %d %d ProcessID: %d  Host: %d", requestTimestamp, pakiet->requestTimestamp, processID, pyrkonHost);
-    if (processID != pyrkonHost) {
-        if (requestTimestamp > pakiet->requestTimestamp || (requestTimestamp == pakiet->requestTimestamp && processID > requestFrom)) {
-            pakiet->src = processID;
+    println("       Timery: %d %d processId: %d  Host: %d", requestTS, pakiet->requestTS, processId, pyrkonHost);
+    if (processId != pyrkonHost) {
+        if (requestTS > pakiet->requestTS || (requestTS == pakiet->requestTS && processId > requestFrom)) {
+            pakiet->src = processId;
             sendPacket(pakiet, requestFrom, WANT_START_PYRKON_ACK);
         }
     }
@@ -46,60 +46,58 @@ void startPyrkonPermissionHandler(packet_t *pakiet) {
     println("               PERMISSION od %d || Otrzymano już %d", pakiet->src, permissionsReceived);
     if (permissionsReceived == size - 1) {
         println("I AM PYRKON HOST\n");
-        pyrkonHost = processID;
-        requestTimestamp = INT_MAX;
+        pyrkonHost = processId;
+        requestTS = INT_MAX;
         sem_post(&pyrkonStartSem);
     }
 }
 
 void wantPyrkonTicketHandler(packet_t *pakiet) {
-    int requestFrom = pakiet->src;
-    println("       Timery: %d %d", pyrkonTicketRequestTS, pakiet->requestTimestamp);
-
-    if (!pyrkonVisited) {
-        if (!hasPyrkonTicket && (pyrkonTicketRequestTS > pakiet->requestTimestamp || (pyrkonTicketRequestTS == pakiet->requestTimestamp && processID > requestFrom))) {
-            pakiet->src = processID;
-            sendPacket(pakiet, requestFrom, WANT_PYRKON_TICKET_ACK);
+    int senderId = pakiet->src;
+    println("       Timery: %d %d", pyrkonTicket.requestTS, pakiet->requestTS);
+    if (pyrkonTicket.want) {
+        if (!pyrkonTicket.has && (pyrkonTicket.requestTS > pakiet->requestTS || (pyrkonTicket.requestTS == pakiet->requestTS && processId > senderId))) {
+            sendPacket(pakiet, senderId, WANT_PYRKON_TICKET_ACK);
         } else {
-            waitingForPyrkonTicket.push_back(requestFrom);
+            pyrkonTicket.waiting.push_back(senderId);
         }
     } else {
-        packet_t pakiet2;
-        sendPacket(&pakiet2, requestFrom, WANT_PYRKON_TICKET_ACK);
-    }
-}
-
-void freePyrkonTicket() {
-    pyrkonVisited = true;
-    while (!waitingForPyrkonTicket.empty()) {
-        packet_t pakiet;
-        sendPacket(&pakiet, waitingForPyrkonTicket.front(), WANT_PYRKON_TICKET_ACK);
-        waitingForPyrkonTicket.pop_front();
+        sendPacket(pakiet, senderId, WANT_PYRKON_TICKET_ACK);
     }
 }
 
 void wantPyrkonTicketAckHandler(packet_t *pakiet) {
-    pyrkonTicketPermissionsReceived++;
-    println("               TICKET PERMISSION od %d || Otrzymano już %d", pakiet->src, pyrkonTicketPermissionsReceived);
-    if (pyrkonTicketPermissionsReceived == size - pyrkonTicketsNumber) {
+    pyrkonTicket.permissions++;
+    println("               TICKET PERMISSION od %d || Otrzymano już %d", pakiet->src, pyrkonTicket.permissions);
+    if (pyrkonTicket.permissions == size - pyrkonTicket.number) {
+        pyrkonTicket.has = true;
+        pyrkonTicket.requestTS = INT_MAX;
+        pyrkonTicket.permissions = 0;
         println("I HAVE PYRKON TICKET\n");
-        hasPyrkonTicket = true;
-        pyrkonTicketRequestTS = INT_MAX;
         sem_post(&pyrkonTicketSem);
+    }
+}
+
+void freePyrkonTicket() {
+    pyrkonTicket.want = false;
+    pyrkonTicket.has = false;
+    while (!pyrkonTicket.waiting.empty()) {
+        packet_t pakiet;
+        sendPacket(&pakiet, pyrkonTicket.waiting.front(), WANT_PYRKON_TICKET_ACK);
+        pyrkonTicket.waiting.pop_front();
     }
 }
 
 void startPyrkonHandler(packet_t *pakiet) {
     pyrkonNumber++;
     pyrkonHost = pakiet->src;  //teorytycznie niepotrzebne, bo tylko host musi wiedzieć, że jest hostem 
-    requestTimestamp = INT_MAX;
+    requestTS = INT_MAX;
     sem_post(&pyrkonStartSem);
 }
 
 void pyrkonTicketsHandler(packet_t *pakiet) {
-    pyrkonTicketsNumber = pakiet->ticketsNumber;
-    println("Pyrkon tickets: %d", pyrkonTicketsNumber);
-    println("TICKETS DETAILS RECEIVED");
+    // pyrkonTicketsNumber = pakiet->ticketsNumber;
+    pyrkonTicket.number = pakiet->ticketsNumber;
     sem_post(&ticketsDetailsSem);
 }
 

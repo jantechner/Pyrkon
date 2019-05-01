@@ -19,14 +19,27 @@ using namespace std;
 
 typedef struct {
     int ts;                 /* zegar lamporta */
-    int requestTimestamp;   /* zegar lamporta w chwili wysyłania requestu - Ricart-Agrawala Algorithm */
+    int requestTS;          /* zegar lamporta w chwili wysyłania requestu - Ricart-Agrawala Algorithm */
     int pyrkonNumber;       /* numer aktualnego Pyrkonu */
     int workshopNumber;     /* opcjonalny numer warsztatów na które uczestnik chce zdobyć bilet */
     int ticketsNumber;      /* ilość miejsc na dane warsztaty */
     int dst;                /* pole ustawiane w sendPacket */
-    int src;                /* pole ustawiane w wątku komunikacyjnym na processID nadawcy */
+    int src;                /* pole ustawiane w wątku komunikacyjnym na processId nadawcy */
 } packet_t;
 #define FIELDNO 7   //liczba pól w strukturze packet_t
+
+typedef struct ticketHandler {
+    ticketHandler() : requestTS(INT_MAX), want(false), has(false), permissions(0) {}
+    int number;             /* ile jest biletów danego typu */
+    int requestTS;          /* znacznik czasowy wysłania żądania o bilet */
+    volatile bool want;              /* czy proces chce bilet */
+    volatile bool has;               /* czy proces ma już bilet */
+    int permissions;        /* ilość pozytywnych odpowiedzi */
+    deque<int> waiting;     /* kolejka procesów czekających na bilet */
+} ticketHandler;
+
+extern ticketHandler pyrkonTicket;
+
 
 //Messages structs
 extern MPI_Datatype MPI_PACKET_T;
@@ -47,16 +60,16 @@ typedef void (*functionPointer)(packet_t *); //typ wskaźnik na funkcję zwracaj
 #define WANT_WORKSHOP_TICKET_ACK 11
 #define MAX_HANDLERS 12
 
-extern int processID, size, pyrkonNumber, pyrkonHost;
+extern int processId, size, pyrkonNumber, pyrkonHost;
 extern int pyrkonTicketsNumber, workshopsNumber;
 #define MIN_WORKSHOPS 3
 #define MAX_WORKSHOPS 8
 extern int* workshopsTickets;
-extern int requestTimestamp, pyrkonTicketRequestTS;
+extern int requestTS, pyrkonTicketRequestTS;
 extern int lamportTimer;
 
 extern volatile bool programEnd;
-extern volatile bool pyrkonVisited;
+extern volatile bool wantPyrkonTicket;
 
 extern pthread_mutex_t timerMutex;
 extern sem_t pyrkonStartSem, ticketsDetailsSem, pyrkonTicketSem, allLeavedPyrkon;
@@ -76,10 +89,10 @@ extern void sendPacket(packet_t *, int, int);
 #define P_SET(X) printf("%c[%d;%dm",27,1,31+(6+X)%7);
 #define P_CLR printf("%c[%d;%dm",27,0,37);
 
-#define println(FORMAT, ...) printf("%c[%d;%dm [%d][%d][%d][%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(processID/7))%2, 31+(6+processID)%7, processID, lamportTimer, requestTimestamp == INT_MAX ? 0 : requestTimestamp, pyrkonTicketRequestTS == INT_MAX ? 0 : pyrkonTicketRequestTS, ##__VA_ARGS__, 27,0,37);
+#define println(FORMAT, ...) printf("%c[%d;%dm [%d][%d][%d][%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(processId/7))%2, 31+(6+processId)%7, processId, lamportTimer, requestTS == INT_MAX ? 0 : requestTS, pyrkonTicketRequestTS == INT_MAX ? 0 : pyrkonTicketRequestTS, ##__VA_ARGS__, 27,0,37);
 
 #ifdef DEBUG
-#define debug(...) printf("%c[%d;%dm [%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(processID/7))%2, 31+(6+processID)%7, processID, ##__VA_ARGS__, 27,0,37);
+#define debug(...) printf("%c[%d;%dm [%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(processId/7))%2, 31+(6+processId)%7, processId, ##__VA_ARGS__, 27,0,37);
 #else
 #define debug(...) ;
 #endif
