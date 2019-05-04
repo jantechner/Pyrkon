@@ -116,16 +116,6 @@ void freePyrkonTicket() {
     }
 }
 
-void freePyrkonTicket() {
-    pyrkonTicket.want = false;
-    pyrkonTicket.has = false;
-    while (!pyrkonTicket.waiting.empty()) {
-        packet_t pakiet;
-        sendPacket(&pakiet, pyrkonTicket.waiting.front(), WANT_PYRKON_TICKET_ACK);
-        pyrkonTicket.waiting.pop_front();
-    }
-}
-
 void startPyrkonHandler(packet_t *pakiet) {
     pyrkonHost.requestTS = INT_MAX;
     pyrkonHost.permissions = 0;
