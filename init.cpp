@@ -1,52 +1,18 @@
 #include "main.h"
 
-int processId, size, lamportTimer, pyrkonNumber = 0, workshopsNumber;
-int noHostsPermissions = 0;
-int* workshopsTickets;
-volatile bool programEnd = false;
-
+int processId, size, lamportTimer, pyrkonNumber = 0, workshopsNumber, noHostsPermissions = 0;
 mutualExclusionStruct pyrkonHost, pyrkonTicket;
+deque<mutualExclusionStruct> workshopsTickets;
 
 pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER, 
                 timerMutex = PTHREAD_MUTEX_INITIALIZER;
-sem_t pyrkonHostSem, pyrkonStartSem, ticketsDetailsSem, pyrkonTicketSem, allLeftPyrkon, pyrkonNumberIncrementedSem;
+sem_t pyrkonHostSem, pyrkonStartSem, everyoneGetsTicketsInfoSem, pyrkonTicketSem, pyrkonNumberIncrementedSem, workshopTicketSem;
 pthread_t communicationThread, ticketsThread;
 
 extern void initializeHandlers();
 extern void * comFunc(void *);
 
 MPI_Datatype MPI_PACKET_T;
-
-
-// pthread_t threadDelay;
-// GQueue *delayStack;
-// pthread_mutex_t packetMut = PTHREAD_MUTEX_INITIALIZER;
-
-/* typedef struct {  // Nie ruszać, do użytku wewnętrznego przez wątek komunikacyjny 
-    packet_t *newP;
-    int type;
-    int dst;
-} stackEl_t; */
-
-/* void *delayFunc(void *ptr) {   //Wątek wprowadzający sztuczne opóźnienia komunikacyjne
-    while (!programEnd) {
-	int percent = (rand()%2 + 1);
-        struct timespec t = { 0, percent*5000 };
-        struct timespec rem = { 1, 0 };
-        if (!processId)
-        nanosleep(&t,&rem);
-	pthread_mutex_lock( &packetMut );
-	stackEl_t *stackEl = g_queue_pop_tail( delayStack );
-	pthread_mutex_unlock( &packetMut );
-        if (!programEnd && stackEl) {
-	//    println(" GOOD %d %p %d\n", end, stackEl, stackEl->type);
-	    MPI_Send( stackEl->newP, 1, MPI_PACKET_T, stackEl->dst, stackEl->type, MPI_COMM_WORLD);
-	    free(stackEl->newP);
-	    free(stackEl);
-        }
-    }
-    return 0;
-} */
 
 void check_thread_support(int provided) {
     printf("THREAD SUPPORT: %d\n", provided);
@@ -107,17 +73,15 @@ void initializeLamportTimer() {
 
 void runThreads() {
     pthread_create(&communicationThread, NULL, comFunc, 0);
-    //delayStack = g_queue_new();
-    //pthread_create( &threadDelay, NULL, delayFunc, 0);
 }
 
 void initializeSemaphores() {
     sem_init(&pyrkonHostSem, 0, 0);
     sem_init(&pyrkonStartSem, 0, 0);
-    sem_init(&ticketsDetailsSem, 0, 0);
+    sem_init(&everyoneGetsTicketsInfoSem, 0, 0);
     sem_init(&pyrkonTicketSem, 0, 0);
-    sem_init(&allLeftPyrkon, 0, 0);
     sem_init(&pyrkonNumberIncrementedSem, 0, 0);
+    sem_init(&workshopTicketSem, 0, 0);
 }
 
 void initialize(int argc, char *argv[]) {
@@ -126,8 +90,8 @@ void initialize(int argc, char *argv[]) {
     createMPIDataTypes();
     initializeLamportTimer();
     initializeHandlers();
-    // srand(processId); //for every process set unique rand seed
-    srand(time(NULL));
+    srand(processId); //for every process set unique rand seed
+    // srand(time(NULL));
     initializeSemaphores();  //musi być przed inicjalizacją wątków
     println("Process initialized");
     runThreads();
@@ -139,9 +103,7 @@ void finalize(void) {
     pthread_join(ticketsThread, NULL);
     sem_destroy(&pyrkonStartSem);
     sem_destroy(&pyrkonTicketSem);
-    //pthread_join(threadDelay,NULL);
 
     MPI_Type_free(&MPI_PACKET_T);
     MPI_Finalize();
-    //g_queue_free(delayStack);
 }

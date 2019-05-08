@@ -15,8 +15,6 @@
 
 using namespace std;
 
-#define ROOT 0
-
 typedef struct {
     int ts;                 /* zegar lamporta */
     int requestTS;          /* zegar lamporta w chwili wysyłania requestu - Ricart-Agrawala Algorithm */
@@ -30,7 +28,7 @@ typedef struct {
 
 typedef struct mutualExclusionStruct {
     mutualExclusionStruct() : requestTS(INT_MAX), want(false), has(false), permissions(0) {}
-    int number;             /* ile jest zasobu danego typu */
+    int amount;             /* ile jest zasobu danego typu */
     int requestTS;          /* znacznik czasowy wysłania żądania */
     volatile bool want;     /* czy proces chce otrzymać zasób */
     volatile bool has;      /* czy proces ma już zasób */
@@ -39,7 +37,7 @@ typedef struct mutualExclusionStruct {
 } mutualExclusionStruct;
 
 extern mutualExclusionStruct pyrkonHost, pyrkonTicket;
-
+extern deque<mutualExclusionStruct> workshopsTickets;
 
 //Messages structs
 extern MPI_Datatype MPI_PACKET_T;
@@ -47,50 +45,32 @@ extern MPI_Datatype MPI_PACKET_T;
 typedef void (*functionPointer)(packet_t *); //typ wskaźnik na funkcję zwracającej void i z argumentem packet_t*
 
 //Messages types
-#define PYRKON_START 1
-#define PYRKON_TICKETS 2
-#define WORKSHOPS_TICKETS 3
-#define LEAVING_PYRKON 4
-#define FINISH 5
-#define WANT_TO_BE_HOST 6
-#define WANT_TO_BE_HOST_ACK 7
-#define WANT_PYRKON_TICKET 8
-#define WANT_PYRKON_TICKET_ACK 9
-#define WANT_WORKSHOP_TICKET 10
-#define WANT_WORKSHOP_TICKET_ACK 11
-#define HOST_CHOSEN 12
-#define PYRKON_NUMBER_INCREMENTED 13
-#define MAX_HANDLERS 14
+#define WANT_TO_BE_HOST 1
+#define WANT_TO_BE_HOST_ACK 2
+#define HOST_CHOSEN 3
+#define PYRKON_START 4
+#define PYRKON_NUMBER_INCREMENTED 5
+#define PYRKON_TICKETS 6
+#define WORKSHOPS_TICKETS 7
+#define GOT_TICKETS_INFO 8
+#define WANT_PYRKON_TICKET 9
+#define WANT_PYRKON_TICKET_ACK 10
+#define WANT_WORKSHOP_TICKET 11
+#define WANT_WORKSHOP_TICKET_ACK 12
+#define MAX_HANDLERS 13
 
-extern int processId, size, pyrkonNumber;
-extern int workshopsNumber;
+extern int processId, size, pyrkonNumber, workshopsNumber, lamportTimer;
 #define MIN_WORKSHOPS 3
 #define MAX_WORKSHOPS 8
-extern int* workshopsTickets;
-extern int lamportTimer;
-
-extern volatile bool programEnd;
 
 extern pthread_mutex_t timerMutex;
-extern sem_t pyrkonHostSem, pyrkonStartSem, ticketsDetailsSem, pyrkonTicketSem, allLeftPyrkon, pyrkonNumberIncrementedSem;
+extern sem_t pyrkonHostSem, pyrkonStartSem, everyoneGetsTicketsInfoSem, pyrkonTicketSem, pyrkonNumberIncrementedSem, workshopTicketSem;
 extern pthread_t ticketsThread;
-extern void * prepareAndSendTicketsDetails(void *);
-// extern GQueue *delayStack; //do użytku wewnętrznego (implementacja opóźnień komunikacyjnych)
 
+extern void * prepareAndSendTicketsDetails(void *);
 extern void sendPacket(packet_t *, int, int);
 
-#define P_WHITE printf("%c[%d;%dm",27,1,37);
-#define P_BLACK printf("%c[%d;%dm",27,1,30);
-#define P_RED printf("%c[%d;%dm",27,1,31);
-#define P_GREEN printf("%c[%d;%dm",27,1,33);
-#define P_BLUE printf("%c[%d;%dm",27,1,34);
-#define P_MAGENTA printf("%c[%d;%dm",27,1,35);
-#define P_CYAN printf("%c[%d;%d;%dm",27,1,36);
-#define P_SET(X) printf("%c[%d;%dm",27,1,31+(6+X)%7);
-#define P_CLR printf("%c[%d;%dm",27,0,37);
-
 #define println(FORMAT, ...) printf("%c[%d;%dm [%d][%d][%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(processId/7))%2, 31+(6+processId)%7, processId, lamportTimer, pyrkonNumber, ##__VA_ARGS__, 27,0,37);
-
 
 #ifdef DEBUG
 #define debug(...) printf("%c[%d;%dm [%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(processId/7))%2, 31+(6+processId)%7, processId, ##__VA_ARGS__, 27,0,37);
