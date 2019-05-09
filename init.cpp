@@ -1,8 +1,11 @@
 #include "main.h"
 
-int processId, size, lamportTimer, pyrkonNumber = 0, workshopsNumber, noHostsPermissions = 0;
-mutualExclusionStruct pyrkonHost, pyrkonTicket;
+int processId, size, lamportTimer, pyrkonNumber = 0, workshopsNumber;
+mutualExclusionStruct pyrkonTicket;
 deque<mutualExclusionStruct> workshopsTickets;
+
+hostRequest myHostRequest = {processId, INT_MAX};
+bool isHost = false;
 
 pthread_mutex_t konto_mut = PTHREAD_MUTEX_INITIALIZER, 
                 timerMutex = PTHREAD_MUTEX_INITIALIZER;

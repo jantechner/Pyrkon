@@ -14,7 +14,7 @@ void *comFunc(void *ptr) {
 
         pthread_mutex_lock(&timerMutex);
             lamportTimer = max(lamportTimer, pakiet.ts) + 1;
-            println("%d -> %s", status.MPI_SOURCE, getMessageCode(status.MPI_TAG).c_str());
+            // println("%d -> %s", status.MPI_SOURCE, getMessageCode(status.MPI_TAG).c_str());
         pthread_mutex_unlock(&timerMutex);
 
         pakiet.src = status.MPI_SOURCE;

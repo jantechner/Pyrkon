@@ -15,6 +15,11 @@
 
 using namespace std;
 
+typedef struct hostRequest{
+    int processId;
+    int TS;
+} hostRequest;
+
 typedef struct {
     int ts;                 /* zegar lamporta */
     int requestTS;          /* zegar lamporta w chwili wysyłania requestu - Ricart-Agrawala Algorithm */
@@ -36,8 +41,11 @@ typedef struct mutualExclusionStruct {
     deque<int> waiting;     /* kolejka procesów czekających na zasób */
 } mutualExclusionStruct;
 
-extern mutualExclusionStruct pyrkonHost, pyrkonTicket;
+extern mutualExclusionStruct pyrkonTicket;
 extern deque<mutualExclusionStruct> workshopsTickets;
+
+extern hostRequest myHostRequest;
+extern bool isHost;
 
 //Messages structs
 extern MPI_Datatype MPI_PACKET_T;
@@ -46,18 +54,16 @@ typedef void (*functionPointer)(packet_t *); //typ wskaźnik na funkcję zwracaj
 
 //Messages types
 #define WANT_TO_BE_HOST 1
-#define WANT_TO_BE_HOST_ACK 2
-#define HOST_CHOSEN 3
-#define PYRKON_START 4
-#define PYRKON_NUMBER_INCREMENTED 5
-#define PYRKON_TICKETS 6
-#define WORKSHOPS_TICKETS 7
-#define GOT_TICKETS_INFO 8
-#define WANT_PYRKON_TICKET 9
-#define WANT_PYRKON_TICKET_ACK 10
-#define WANT_WORKSHOP_TICKET 11
-#define WANT_WORKSHOP_TICKET_ACK 12
-#define MAX_HANDLERS 13
+#define PYRKON_START 2
+#define PYRKON_NUMBER_INCREMENTED 3
+#define PYRKON_TICKETS 4
+#define WORKSHOPS_TICKETS 5
+#define GOT_TICKETS_INFO 6
+#define WANT_PYRKON_TICKET 7
+#define WANT_PYRKON_TICKET_ACK 8
+#define WANT_WORKSHOP_TICKET 9
+#define WANT_WORKSHOP_TICKET_ACK 10
+#define MAX_HANDLERS 11
 
 extern int processId, size, pyrkonNumber, workshopsNumber, lamportTimer;
 #define MIN_WORKSHOPS 3
