@@ -1,8 +1,8 @@
 # Fdb version 3
-["pdflatex"] 1557773601 "/media/seba/Data/Projekty/PRoz/Pyrkon/Sprawozdanie/Sprawozdanie.tex" "/media/seba/Data/Projekty/PRoz/Pyrkon/Sprawozdanie/Sprawozdanie.pdf" "Sprawozdanie" 1557773602
+["pdflatex"] 1557850856 "/media/seba/Data/Projekty/PRoz/Pyrkon/Sprawozdanie/Sprawozdanie.tex" "/media/seba/Data/Projekty/PRoz/Pyrkon/Sprawozdanie/Sprawozdanie.pdf" "Sprawozdanie" 1557851067
   "/etc/texmf/web2c/texmf.cnf" 1538904940 475 c0e671620eb5563b2130f56340a5fde8 ""
-  "/media/seba/Data/Projekty/PRoz/Pyrkon/Sprawozdanie/Sprawozdanie.aux" 1557773602 394 9c8ef8edab37cf6557e71ab21660b48a ""
-  "/media/seba/Data/Projekty/PRoz/Pyrkon/Sprawozdanie/Sprawozdanie.tex" 1557773601 6291 0a42ca0b3cbe4bfe6f2c34faf9a55d44 ""
+  "/media/seba/Data/Projekty/PRoz/Pyrkon/Sprawozdanie/Sprawozdanie.aux" 1557850857 394 9c8ef8edab37cf6557e71ab21660b48a ""
+  "/media/seba/Data/Projekty/PRoz/Pyrkon/Sprawozdanie/Sprawozdanie.tex" 1557850856 6445 d4f63c4f89570137660817d3bd144dab ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/pl/plmi.enc" 1480098668 2005 f094775651a1386335c158fb632529f1 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/pl/plms.enc" 1480098668 2468 3f9e2f3088bcf5b581dfc367d71e7d95 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/pl/plrm.enc" 1480098668 1944 1845592c00bbe510359fd6887a83ff72 ""
@@ -207,12 +207,12 @@
   "/usr/share/texmf/web2c/texmf.cnf" 1520210507 32485 c64754543d8ac501bea6e75e209ea521 ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1538904975 2700761 ac0584cc9514ab21918550a6948c4ee2 ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1539632307 4127706 24d93bad085ca49f0cefb47a49d8cc32 ""
-  "Sprawozdanie.aux" 1557773602 394 9c8ef8edab37cf6557e71ab21660b48a ""
-  "Sprawozdanie.tex" 1557773601 6291 0a42ca0b3cbe4bfe6f2c34faf9a55d44 ""
+  "Sprawozdanie.aux" 1557850857 394 9c8ef8edab37cf6557e71ab21660b48a ""
+  "Sprawozdanie.tex" 1557850856 6445 d4f63c4f89570137660817d3bd144dab ""
   "diagram.png" 1557773482 115143 90c1170f1a44cf4e6778b3267838ac4c ""
   (generated)
-  "/media/seba/Data/Projekty/PRoz/Pyrkon/Sprawozdanie/Sprawozdanie.log"
-  "Sprawozdanie.aux"
   "Sprawozdanie.log"
+  "Sprawozdanie.aux"
   "/media/seba/Data/Projekty/PRoz/Pyrkon/Sprawozdanie/Sprawozdanie.pdf"
   "Sprawozdanie.pdf"
+  "/media/seba/Data/Projekty/PRoz/Pyrkon/Sprawozdanie/Sprawozdanie.log"
